@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.25920.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect", "RAspect\RAspect.csproj", "{05D73B42-B7F9-407D-BB14-F4BC09AE226B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Aspects", "RAspect.Aspects\RAspect.Aspects.csproj", "{3F2DE547-B414-4B24-BE0E-7879E8604B5B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Console", "RAspect.Console\RAspect.Console.csproj", "{620C23AE-960A-492C-AA10-554DB5D26469}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Contracts", "RAspect.Contracts\RAspect.Contracts.csproj", "{6CF48DD0-D908-482F-8272-FAB5B21277D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Analyzers", "RAspect.Analyzers\RAspect.Analyzers\RAspect.Analyzers.csproj", "{0F81D5C6-EBE4-4470-8AD4-F7D1DBB615D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Analyzers.Test", "RAspect.Analyzers\RAspect.Analyzers.Test\RAspect.Analyzers.Test.csproj", "{74609B62-F8A8-4B10-AE66-227C9FF73EFE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{05D73B42-B7F9-407D-BB14-F4BC09AE226B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05D73B42-B7F9-407D-BB14-F4BC09AE226B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05D73B42-B7F9-407D-BB14-F4BC09AE226B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05D73B42-B7F9-407D-BB14-F4BC09AE226B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{620C23AE-960A-492C-AA10-554DB5D26469}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{620C23AE-960A-492C-AA10-554DB5D26469}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{620C23AE-960A-492C-AA10-554DB5D26469}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{620C23AE-960A-492C-AA10-554DB5D26469}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F81D5C6-EBE4-4470-8AD4-F7D1DBB615D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F81D5C6-EBE4-4470-8AD4-F7D1DBB615D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F81D5C6-EBE4-4470-8AD4-F7D1DBB615D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F81D5C6-EBE4-4470-8AD4-F7D1DBB615D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
