@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Analyzers", "RAspec
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Analyzers.Test", "RAspect.Analyzers\RAspect.Analyzers.Test\RAspect.Analyzers.Test.csproj", "{74609B62-F8A8-4B10-AE66-227C9FF73EFE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Patterns", "RAspect.Patterns\RAspect.Patterns.csproj", "{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{74609B62-F8A8-4B10-AE66-227C9FF73EFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

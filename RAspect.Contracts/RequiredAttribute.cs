@@ -33,6 +33,21 @@ namespace RAspect.Contracts
         }
 
         /// <summary>
+        /// Validate value against contract implementation
+        /// </summary>
+        /// <param name="value">Value</param>
+        /// <param name="name">Name</param>
+        /// <returns>Exception</returns>
+        protected override Exception ValidateContract(object value, string name)
+        {
+            if (!value.IsValidateForRequired())
+            {
+                return new NullReferenceException(name);
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Aspect code to inject at the beginning of weaved method
         /// </summary>
         /// <param name="method">Method</param>

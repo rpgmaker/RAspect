@@ -20,6 +20,14 @@ namespace RAspect.Aspects
         }
 
         /// <summary>
+        /// Validate value against contract implementation
+        /// </summary>
+        /// <param name="value">Value</param>
+        /// <param name="name">Name</param>
+        /// <returns>Exception</returns>
+        protected abstract Exception ValidateContract(object value, string name);
+
+        /// <summary>
         /// Gets weave block type
         /// </summary>
         internal override WeaveBlockType BlockType

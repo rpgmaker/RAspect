@@ -41,8 +41,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ContractExtensions.cs" />
+    <Compile Include="CreditCardAttribute.cs" />
+    <Compile Include="EmailAddressAttribute.cs" />
+    <Compile Include="EnumDataTypeAttribute.cs" />
+    <Compile Include="GreaterThanAttribute.cs" />
+    <Compile Include="LessThanAttribute.cs" />
+    <Compile Include="NegativeAttribute.cs" />
+    <Compile Include="NotEmptyAttribute.cs" />
+    <Compile Include="NotNullAttribute.cs" />
+    <Compile Include="PhoneAttribute.cs" />
+    <Compile Include="PositiveAttribute.cs" />
+    <Compile Include="RangeAttribute.cs" />
+    <Compile Include="RegularExpressionAttribute.cs" />
     <Compile Include="RequiredAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StringLengthAttribute.cs" />
+    <Compile Include="UrlAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RAspect.Aspects\RAspect.Aspects.csproj">
