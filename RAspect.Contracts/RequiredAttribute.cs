@@ -15,58 +15,20 @@ namespace RAspect.Contracts
     public sealed class RequiredAttribute : ContractAspect
     {
         /// <summary>
-        /// Invoke before setting property value
-        /// </summary>
-        /// <param name="context"></param>
-        internal override void OnEntry(MethodContext context)
-        {
-            var argument = context.Arguments.FirstOrDefault();
-            if (argument == null)
-                return;
-
-            var value = argument.Value;
-
-            if (!value.IsValidateForRequired())
-            {
-                throw new NullReferenceException("value");
-            }
-        }
-
-        /// <summary>
         /// Validate value against contract implementation
         /// </summary>
         /// <param name="value">Value</param>
         /// <param name="name">Name</param>
+        /// <param name="isParameter">Flag indicating if value is from a parameter</param>
+        /// <param name="attrs">Attribute</param>
         /// <returns>Exception</returns>
-        protected override Exception ValidateContract(object value, string name)
+        protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            if (!value.IsValidateForRequired())
-            {
+            var str = value as string;
+            if (str != null && string.IsNullOrWhiteSpace(str))
                 return new NullReferenceException(name);
-            }
-            return null;
-        }
 
-        /// <summary>
-        /// Aspect code to inject at the beginning of weaved method
-        /// </summary>
-        /// <param name="method">Method</param>
-        /// <param name="parameter">Parameter</param>
-        /// <param name="il">ILGenerator</param>
-        protected override void BeginAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
-        {
-            var requiredLabel = il.DefineLabel();
-            var offset = method.IsStatic ? 0 : 1;
-
-            il.Emit(OpCodes.Ldarg, parameter.Position + offset);
-            il.Emit(OpCodes.Call, ContractExtensions.GetMethod("IsValidateForRequired").MakeGenericMethod(parameter.ParameterType));
-            il.Emit(OpCodes.Brtrue, requiredLabel);
-
-            il.Emit(OpCodes.Ldstr, parameter.Name);
-            il.Emit(OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(new[] { typeof(string) }));
-            il.Emit(OpCodes.Throw);
-
-            il.MarkLabel(requiredLabel);
+            return value != null ? null : new NullReferenceException(name);
         }
     }
 }

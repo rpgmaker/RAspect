@@ -57,17 +57,22 @@
         public MethodInfo Method { get; set; }
 
         /// <summary>
+        /// Gets or sets Method Attributes
+        /// </summary>
+        public List<Attribute> Attributes { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether flag to indicate continuation of code execution
         /// </summary>
         public bool Continue { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets return value of aspect method to be used after execution is completed
+        /// Gets or sets return value of weaved method to be used after execution is completed
         /// </summary>
         public object Returns { get; set; }
 
         /// <summary>
-        /// Gets or sets instance of class aspect method was invoked on
+        /// Gets or sets instance of class weaved method was invoked on
         /// </summary>
         public object Instance { get; set; }
 
@@ -100,7 +105,7 @@
         }
 
         /// <summary>
-        /// Get argument value by name from aspect method arguments
+        /// Get argument value by name from weaved method arguments
         /// </summary>
         /// <typeparam name="T">Generic Type</typeparam>
         /// <param name="name">Argument name</param>

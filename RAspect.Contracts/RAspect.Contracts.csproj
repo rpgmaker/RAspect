@@ -40,7 +40,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ContractExtensions.cs" />
     <Compile Include="CreditCardAttribute.cs" />
     <Compile Include="EmailAddressAttribute.cs" />
     <Compile Include="EnumDataTypeAttribute.cs" />

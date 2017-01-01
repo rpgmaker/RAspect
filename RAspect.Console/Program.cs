@@ -35,7 +35,7 @@ namespace RAspect.ConsoleApp
             ILWeaver.OptimizeEmptyAspects = true;
             ILWeaver.GenerateAssembly = true;
             ILWeaver.Weave();
-            //ILWeaver.SaveAssembly();
+            ILWeaver.SaveAssembly();
 
             var tobj = new TestMyClass3();
             tobj.Value = "Ok this is working";

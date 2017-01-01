@@ -75,13 +75,13 @@
         internal Action<ILGenerator, MethodInfo, FieldInfo, LocalBuilder> OnAspectBlockInvokeEvent { get; set; }
 
         /// <summary>
-        /// Method that will be called prior to execute of aspect methods
+        /// Method that will be called prior to execute of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
         internal virtual void OnEntry(MethodContext context) { }
 
         /// <summary>
-        /// Method that will be called prior to exiting of aspect methods
+        /// Method that will be called prior to exiting of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
         internal virtual void OnExit(MethodContext context)
@@ -89,7 +89,7 @@
         }
 
         /// <summary>
-        /// Method that will be called after success of aspect methods
+        /// Method that will be called after success of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
         internal virtual void OnSuccess(MethodContext context)
@@ -100,7 +100,7 @@
         /// Method that will be called upon exception
         /// </summary>
         /// <param name="context">MethodContext</param>
-        /// <param name="ex">Exception that occurred while executing aspect method</param>
+        /// <param name="ex">Exception that occurred while executing weaved method</param>
         internal virtual void OnException(MethodContext context, Exception ex)
         {
         }

@@ -1,7 +1,7 @@
 ﻿namespace RAspect
 {
     /// <summary>
-    /// Represent arguments retrieved from aspect methods
+    /// Represent arguments retrieved from weaved methods
     /// </summary>
     public sealed class MethodParameterContext
     {
@@ -17,12 +17,12 @@
         }
 
         /// <summary>
-        /// Gets name of aspect method parameter
+        /// Gets name of weaved method parameter
         /// </summary>
         public string Name { get; private set; }
 
         /// <summary>
-        /// Gets value of aspect method parameter
+        /// Gets value of weaved method parameter
         /// </summary>
         public object Value { get; internal set; }
 

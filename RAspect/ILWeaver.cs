@@ -67,10 +67,19 @@
         private static readonly Type AspectType = typeof(AspectBase);
 
         /// <summary>
-        /// Aspect method type
+        /// Method Context type
         /// </summary>
-        private static readonly Type AspectMethodType = typeof(MethodContext);
+        private static readonly Type MethodContextType = typeof(MethodContext);
 
+        /// <summary>
+        /// To List method info
+        /// </summary>
+        private static readonly MethodInfo ToListAttributeMethod = typeof(Enumerable).GetMethod("ToList").MakeGenericMethod(typeof(Attribute));
+
+        /// <summary>
+        /// Get Custom Attributes for method info
+        /// </summary>
+        private static readonly MethodInfo GetMethodAttributesMethod = typeof(ILWeaver).GetMethod("GetMethodAttributes", NonPublicBinding);
         /// <summary>
         /// Aspect Entry method info
         /// </summary>
@@ -102,29 +111,34 @@
         private static readonly MethodInfo GetAspectValue = typeof(ILWeaver).GetMethod("GetAspect");
 
         /// <summary>
-        /// AspectMethod Returns Property
+        /// MethodContext Returns Property
         /// </summary>
-        private static readonly PropertyInfo AspectMethodReturns = AspectMethodType.GetProperty("Returns");
+        private static readonly PropertyInfo MethodContextReturns = MethodContextType.GetProperty("Returns");
 
         /// <summary>
-        /// AspectMethod Arguments Property
+        /// MethodContext Arguments Property
         /// </summary>
-        private static readonly PropertyInfo AspectMethodArguments = AspectMethodType.GetProperty("Arguments");
+        private static readonly PropertyInfo MethodContextArguments = MethodContextType.GetProperty("Arguments");
 
         /// <summary>
-        /// AspectMethod Continue Property
+        /// MethodContext Continue Property
         /// </summary>
-        private static readonly PropertyInfo AspectMethodContinue = AspectMethodType.GetProperty("Continue");
+        private static readonly PropertyInfo MethodContextContinue = MethodContextType.GetProperty("Continue");
 
         /// <summary>
-        /// AspectMethod Method Property
+        /// MethodContext Method Property
         /// </summary>
-        private static readonly PropertyInfo AspectMethodMethod = AspectMethodType.GetProperty("Method");
+        private static readonly PropertyInfo MethodContextMethod = MethodContextType.GetProperty("Method");
 
         /// <summary>
-        /// AspectMethod Instance Property
+        /// MethodContext Method Property
         /// </summary>
-        private static readonly PropertyInfo AspectMethodInstance = AspectMethodType.GetProperty("Instance");
+        private static readonly PropertyInfo MethodContextAttributes = MethodContextType.GetProperty("Attributes");
+
+        /// <summary>
+        /// MethodContext Instance Property
+        /// </summary>
+        private static readonly PropertyInfo MethodContextInstance = MethodContextType.GetProperty("Instance");
 
         /// <summary>
         /// Collection of cached aspect instances
@@ -132,7 +146,7 @@
         private static readonly ConcurrentDictionary<Type, AspectBase> Aspects = new ConcurrentDictionary<Type, AspectBase>();
 
         /// <summary>
-        /// Constructor info for AspectMethodArgumentInfo
+        /// Constructor info for MethodContext ArgumentInfo
         /// </summary>
         private static ConstructorInfo ArgumentMethodArgumentCtor = typeof(MethodParameterContext).GetConstructor(new[] { typeof(string), typeof(bool) });
 
@@ -175,7 +189,7 @@
         public static bool GenerateAssembly { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to apply optimization for empty aspect methods (Intercept/Exit/Error)
+        /// Gets or sets a value indicating whether to apply optimization for empty weaved methods (Intercept/Exit/Error)
         /// </summary>
         public static bool OptimizeEmptyAspects { get; set; } = true;
 
@@ -185,7 +199,7 @@
         public static Func<Assembly, bool> AssemblyFilter { private get; set; }
 
         /// <summary>
-        /// Rewrite aspect methods for given generic type
+        /// Rewrite weaved methods for given generic type
         /// </summary>
         /// <typeparam name="T">Generic Type</typeparam>
         public static void Weave<T>()
@@ -195,7 +209,7 @@
         }
 
         /// <summary>
-        /// Rewrite aspect methods for given type
+        /// Rewrite methods for given type
         /// </summary>
         /// <param name="type">Class Type</param>
         public static void Weave(Type type)
@@ -227,7 +241,7 @@
             }
             catch (Exception ex)
             {
-                throw new ApplicationException(string.Format("Error weaving aspect methods for {0}", type.FullName), ex);
+                throw new ApplicationException(string.Format("Error weaving methods for {0}", type.FullName), ex);
             }
         }
 
@@ -455,12 +469,12 @@
             };
 
             var analysis = new ILAnalysis();
-            var @continue = AspectMethodContinue.GetSetMethod();
-            var @continueGet = AspectMethodContinue.GetGetMethod();
-            var arguments = AspectMethodArguments.GetGetMethod();
-            var instance = AspectMethodInstance.GetGetMethod();
-            var meth = AspectMethodMethod.GetGetMethod();
-            var @return = AspectMethodReturns.GetGetMethod();
+            var @continue = MethodContextContinue.GetSetMethod();
+            var @continueGet = MethodContextContinue.GetGetMethod();
+            var arguments = MethodContextArguments.GetGetMethod();
+            var instance = MethodContextInstance.GetGetMethod();
+            var meth = MethodContextMethod.GetGetMethod();
+            var @return = MethodContextReturns.GetGetMethod();
             var @break = false;
 
             foreach (var method in methods)
@@ -537,7 +551,7 @@
         }
 
         /// <summary>
-        /// Generate aspect method from method info
+        /// Weave method from method info
         /// </summary>
         /// <param name="type">TypeBuilder</param>
         /// <param name="method">Method Info</param>
@@ -545,17 +559,18 @@
         /// <param name="il">IL Generator</param>
         /// <param name="local">Return local builder</param>
         /// <param name="methodInfoField">MethodInfo Field</param>
+        /// <param name="methodAttrField">Method Attribute Field</param>
         /// <param name="sil">Static Constructor IL Generator</param>
         /// <param name="aspectTypes">Aspect Types</param>
         /// <param name="parameterAspects">Parameters Aspect</param>
         /// <param name="methodParameters">Method Parameters</param>
         /// <param name="fieldAspects">Field Aspects</param>
-        private static void CreateAspectMethod(TypeBuilder type, MethodInfo method, List<AspectBase> aspectAttributes, ILGenerator il, LocalBuilder local, FieldBuilder methodInfoField, ILGenerator sil, List<Type> aspectTypes, List<AspectBase> parameterAspects, Type[] methodParameters, List<AspectBase> fieldAspects)
+        private static void WeaveMethod(TypeBuilder type, MethodInfo method, List<AspectBase> aspectAttributes, ILGenerator il, LocalBuilder local, FieldBuilder methodInfoField, FieldBuilder methodAttrField, ILGenerator sil, List<Type> aspectTypes, List<AspectBase> parameterAspects, Type[] methodParameters, List<AspectBase> fieldAspects)
         {
             var argumentsField = type.DefineField(string.Concat("_<args>_", method.Name, counter++), typeof(MethodParameterContext[]), FieldAttributes.Static | FieldAttributes.Private);
             var fields = TypeAspects.GetOrAdd(type.FullName, _ => new Dictionary<string, FieldBuilder>());
             
-            foreach (var aspectType in aspectTypes.Union(fieldAspects.Select(x => x.GetType())))
+            foreach (var aspectType in aspectTypes.Union(fieldAspects.Select(x => x.GetType())).Union(parameterAspects.Select(x => x.GetType())))
             {
                 var key = aspectType.FullName;
                 FieldBuilder staticField = null;
@@ -654,14 +669,25 @@
             {
                 il.Emit(OpCodes.Ldloc, methodContext);
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Callvirt, AspectMethodInstance.GetSetMethod());
+                il.Emit(OpCodes.Callvirt, MethodContextInstance.GetSetMethod());
             }
 
             if (methodUsed)
             {
                 il.Emit(OpCodes.Ldloc, methodContext);
                 il.Emit(OpCodes.Ldsfld, methodInfoField);
-                il.Emit(OpCodes.Callvirt, AspectMethodMethod.GetSetMethod());
+                il.Emit(OpCodes.Callvirt, MethodContextMethod.GetSetMethod());
+
+                var needAttrs = aspectAttributes.Any(x => x.BlockType == WeaveBlockType.Inline) ||
+                    fieldAspects.Any(x => x.BlockType == WeaveBlockType.Inline) ||
+                    parameterAspects.Any(x => x.BlockType == WeaveBlockType.Inline);
+
+                if (needAttrs)
+                {
+                    il.Emit(OpCodes.Ldloc, methodContext);
+                    il.Emit(OpCodes.Ldsfld, methodInfoField);
+                    il.Emit(OpCodes.Callvirt, MethodContextAttributes.GetSetMethod());
+                }
             }
 
             for (var i = 0; i < aspectTypes.Count; i++)
@@ -690,7 +716,7 @@
             if (continueUsed)
             {
                 il.Emit(OpCodes.Ldloc, methodContext);
-                il.Emit(OpCodes.Callvirt, AspectMethodContinue.GetGetMethod());
+                il.Emit(OpCodes.Callvirt, MethodContextContinue.GetGetMethod());
                 il.Emit(OpCodes.Stloc, continueLocal);
 
                 il.Emit(OpCodes.Ldloc, continueLocal);
@@ -717,7 +743,7 @@
                         il.Emit(OpCodes.Box, method.ReturnType);
                     }
 
-                    il.Emit(OpCodes.Callvirt, AspectMethodReturns.GetSetMethod());
+                    il.Emit(OpCodes.Callvirt, MethodContextReturns.GetSetMethod());
                 }
             }
 
@@ -752,12 +778,12 @@
                     var localType = local.LocalType;
 
                     il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Callvirt, AspectMethodReturns.GetGetMethod());
+                    il.Emit(OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
                     il.Emit(OpCodes.Brfalse, aspectNoReturnLabel);
 
                     //Return value is set. Update local with return value
                     il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Callvirt, AspectMethodReturns.GetGetMethod());
+                    il.Emit(OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
                     if (localType.IsValueType)
                         il.Emit(OpCodes.Unbox_Any, localType);
                     else
@@ -832,11 +858,6 @@
                 il.EndExceptionBlock();
             }
 
-            if (returnUsed && local != null && methodContext != null)
-            {
-
-            }
-
             if (continueUsed)
             {
                 il.Emit(OpCodes.Br, notContinueLabel);
@@ -909,6 +930,27 @@
         {
             return type.Namespace.StartsWith("system", StringComparison.OrdinalIgnoreCase) ||
                 type.Module.ScopeName == "CommonLanguageRuntimeLibrary";
+        }
+
+        /// <summary>
+        /// Get method/properties attributes for a given method
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns>List{Attribute}</returns>
+        internal static List<Attribute> GetMethodAttributes(MethodInfo method)
+        {
+            var declaringType = method.DeclaringType;
+
+            var methodName = method.Name;
+
+            var isProperty = methodName.StartsWith("get_") || methodName.StartsWith("set_");
+
+            var newMethodName = isProperty ? methodName.Substring(4) : methodName;
+
+            var propInfo = isProperty ? declaringType.GetProperty(newMethodName, NonPublicBinding) : null;
+
+            return (isProperty ? propInfo.GetCustomAttributes<Attribute>() :
+                method.GetCustomAttributes<Attribute>()).ToList();
         }
 
         /// <summary>
@@ -1007,7 +1049,7 @@
         }
 
         /// <summary>
-        /// Modify type aspect methods to include registered aspect method code
+        /// Modify type methods to include registered weaved method code
         /// </summary>
         /// <param name="classType">Class Type</param>
         /// <returns>Type</returns>
@@ -1108,12 +1150,19 @@
                 var isStatic = method.IsStatic;
 
                 var methodInfoField = type.DefineField(string.Concat("__<info>_", method.Name, counter++), typeof(MethodInfo), FieldAttributes.Static | FieldAttributes.Private);
+                var methodAttrField = type.DefineField(string.Concat("__<attr>_", method.Name, counter++), typeof(List<Attribute>), FieldAttributes.Static | FieldAttributes.Private);
 
                 sil.Emit(OpCodes.Ldtoken, method);
                 sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
                 sil.Emit(OpCodes.Isinst, typeof(MethodInfo));
                 sil.Emit(OpCodes.Stsfld, methodInfoField);
-                
+
+                sil.Emit(OpCodes.Ldtoken, method);
+                sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+                sil.Emit(OpCodes.Isinst, typeof(MethodInfo));
+                sil.Emit(OpCodes.Call, GetMethodAttributesMethod);
+                sil.Emit(OpCodes.Stsfld, methodAttrField);
+
                 var meth = type.DefineMethod(methodName, method.Attributes, method.CallingConvention, methodReturnType, methodParameters);
 
                 MakeMethodGenericIfNeeded(method, meth);
@@ -1122,7 +1171,7 @@
 
                 var local = !isVoid ? il.DeclareLocal(methodReturnType) : null;
 
-                CreateAspectMethod(type, method, methAspects, il, local, methodInfoField, sil, aspectTypes, parameterAspects, methodParameters, fieldAspects);
+                WeaveMethod(type, method, methAspects, il, local, methodInfoField, methodAttrField, sil, aspectTypes, parameterAspects, methodParameters, fieldAspects);
 
                 if (local != null)
                 {
@@ -1186,7 +1235,7 @@
             }
             catch (Exception ex)
             {
-                throw new ApplicationException(string.Format("Error weaving aspect methods for {0}.{1}", method.DeclaringType.FullName, method.Name), ex);
+                throw new ApplicationException(string.Format("Error weaving methods for {0}.{1}", method.DeclaringType.FullName, method.Name), ex);
             }
 
             return meth;
@@ -1197,7 +1246,7 @@
         /// </summary>
         /// <param name="returnType">Type containing methods</param>
         /// <param name="item">MethodInfo for metadata</param>
-        /// <param name="useTemp">Use Temporary aspect method</param>
+        /// <param name="useTemp">Use Temporary weaved method</param>
         /// <returns>MethodInfo</returns>
         private static MethodInfo GetWeavedMethod(Type returnType, MethodInfo item, bool useTemp)
         {

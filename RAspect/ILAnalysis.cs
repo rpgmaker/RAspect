@@ -1,7 +1,7 @@
 ﻿namespace RAspect
 {
     /// <summary>
-    /// Analysis of aspect methods IL
+    /// Analysis of weaved methods IL
     /// </summary>
     public class ILAnalysis
     {

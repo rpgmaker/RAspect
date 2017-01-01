@@ -54,6 +54,15 @@
     <Compile Include="Threading\ThreadUnSafeAttribute.cs" />
     <Compile Include="Threading\WriterAttribute.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\RAspect.Aspects\RAspect.Aspects.csproj">
+      <Project>{3f2de547-b414-4b24-be0e-7879e8604b5b}</Project>
+      <Name>RAspect.Aspects</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect\RAspect.csproj">
+      <Project>{05d73b42-b7f9-407d-bb14-f4bc09ae226b}</Project>
+      <Name>RAspect</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
