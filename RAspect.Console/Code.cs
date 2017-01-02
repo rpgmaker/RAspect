@@ -107,7 +107,7 @@ namespace RAspect.ConsoleApp
             Test2();
         }
 
-        public void TestParameterMethod([Required]string value)
+        public void TestParameterMethod([EmailAddress]string value)
         {
             Console.WriteLine(value);
             if (myEvent != null)

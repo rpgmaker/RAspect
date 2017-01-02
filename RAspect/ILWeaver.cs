@@ -1093,7 +1093,7 @@
                 var aspectAttrs = (isProperty ? propInfo.GetCustomAttributes<AspectBase>() :
                     method.GetCustomAttributes<AspectBase>()).Where(x => !x.Exclude);
 
-                var parameterAspects = parameters.Select(x => x.GetCustomAttribute<AspectBase>()).Where(x => x != null).Where(x => !x.Exclude).ToList();
+                var parameterAspects = parameters.SelectMany(x => x.GetCustomAttributes<AspectBase>()).Where(x => x != null).Where(x => !x.Exclude).ToList();
 
                 var shouldOverride = 
                     (aspectAttrs.Any() || typeAspects.Any() || parameterAspects.Any() || fieldAspects.Any()) &&

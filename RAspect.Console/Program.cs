@@ -11,24 +11,6 @@ namespace RAspect.ConsoleApp
     class Program
     {
         const int COUNT = 100000;
-
-        private static event EventHandler myEvent;
-
-        private static event EventHandler myEventBackUp;
-
-        private static event EventHandler MyEvent
-        {
-            add
-            {
-                myEventBackUp += value;
-                myEvent = myEventBackUp;
-            }
-            remove
-            {
-                myEventBackUp -= value;
-                myEvent = myEventBackUp;
-            }
-        }
         
         static void Main(string[] args)
         {
@@ -38,7 +20,7 @@ namespace RAspect.ConsoleApp
             ILWeaver.SaveAssembly();
 
             var tobj = new TestMyClass3();
-            tobj.Value = "Ok this is working";
+            tobj.Value = "test.email@gmail.com";
             var evt = new EventHandler((s, e) => { Console.WriteLine("Simple Delegate"); });
             tobj.myEvent += evt;
             tobj.TestParameterMethod(tobj.Value);
