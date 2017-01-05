@@ -3,23 +3,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class PhoneAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentException"/> for target it is applied to when value is not a valid phone number. Null strings are accepted and do not throw an exception
+    /// </summary>
+    public sealed class PhoneAttribute : RegularExpressionAttribute
     {
         /// <summary>
-        /// Validate value against contract implementation
+        /// Initializes a new instance of the <see cref="PhoneAttribute"/> class.
         /// </summary>
-        /// <param name="value">Value</param>
-        /// <param name="name">Name</param>
-        /// <param name="isParameter">Flag indicating if value is from a parameter</param>
-        /// <param name="attrs">Attribute</param>
-        /// <returns>Exception</returns>
-        protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
+        public PhoneAttribute() : base(@"^(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?$", RegexOptions.IgnoreCase | RegexOptions.Multiline)
         {
-            throw new NotImplementedException();
         }
     }
 }

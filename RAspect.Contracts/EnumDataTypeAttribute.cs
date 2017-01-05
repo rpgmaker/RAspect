@@ -7,8 +7,25 @@ using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class EnumDataTypeAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentException"/> for target it is applied to when value is not a valid member of an enumeration
+    /// </summary>
+    public sealed class EnumDataTypeAttribute : ContractAspect
     {
+        /// <summary>
+        /// Enum Type
+        /// </summary>
+        internal Type EnumType;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EnumDataTypeAttribute"/> class.
+        /// </summary>
+        /// <param name="enumType">Enum Type</param>
+        public EnumDataTypeAttribute(Type enumType)
+        {
+            EnumType = enumType;
+        }
+
         /// <summary>
         /// Validate value against contract implementation
         /// </summary>
@@ -19,7 +36,26 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            throw new NotImplementedException();
+            if(value == null)
+            {
+                goto done;
+            }
+
+            var str = value as string;
+            var enumAttr = attr as EnumDataTypeAttribute;
+            var enumType = enumAttr.EnumType;
+            var values = str != null ? Enum.GetNames(enumType) : 
+                Enum.GetValues(enumType).Cast<object>().Select(x => x.ToString()).ToArray();
+
+            str = value.ToString();
+
+            if (values.Contains(str))
+            {
+                return null;
+            }
+
+            done:
+            return new ArgumentException(name);
         }
     }
 }

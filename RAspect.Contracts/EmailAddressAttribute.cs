@@ -11,7 +11,7 @@ namespace RAspect.Contracts
     /// <summary>
     /// Attribute that throws <see cref="ArgumentException"/> for target it is applied to when value is not a valid email address
     /// </summary>
-    public class EmailAddressAttribute : RegularExpressionAttribute
+    public sealed class EmailAddressAttribute : RegularExpressionAttribute
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EmailAddressAttribute"/> class.

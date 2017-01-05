@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class NotNullAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentNullException"/> for target it is applied to when value is null
+    /// </summary>
+    public sealed class NotNullAttribute : ContractAspect
     {
         /// <summary>
         /// Validate value against contract implementation
@@ -19,7 +22,12 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            throw new NotImplementedException();
+            if(value != null)
+            {
+                return null;
+            }
+
+            return new ArgumentNullException(name);
         }
     }
 }

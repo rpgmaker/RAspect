@@ -7,8 +7,40 @@ using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class StringLengthAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentException"/> for target it is applied to when value is assigned a string of invalid length. Null values do not throw an exception
+    /// </summary>
+    public sealed class StringLengthAttribute : ContractAspect
     {
+        /// <summary>
+        /// Max Length
+        /// </summary>
+        internal int MaxLength;
+
+        /// <summary>
+        /// Min Length
+        /// </summary>
+        internal int MinLength;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StringLengthAttribute"/> class.
+        /// </summary>
+        /// <param name="maxLength">MaxLength</param>
+        public StringLengthAttribute(int maxLength) : this(0, maxLength)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StringLengthAttribute"/> class.
+        /// </summary>
+        /// <param name="minLength">MinLength</param>
+        /// <param name="maxLength"></param>
+        public StringLengthAttribute(int minLength, int maxLength)
+        {
+            MinLength = minLength;
+            MaxLength = maxLength;
+        }
+
         /// <summary>
         /// Validate value against contract implementation
         /// </summary>
@@ -19,7 +51,16 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            throw new NotImplementedException();
+            var strLengthAttr = attr as StringLengthAttribute;
+            var str = value as string;
+            var strLength = 0;
+
+            if(str == null || (strLength = str.Length) >=  strLengthAttr.MinLength && strLength <= strLengthAttr.MaxLength)
+            {
+                return null;
+            }
+
+            return new ArgumentException(name);
         }
     }
 }

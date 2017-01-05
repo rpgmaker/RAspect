@@ -13,7 +13,7 @@ namespace RAspect.Contracts
     /// <summary>
     /// Attribute that throws <see cref="ArgumentException"/> for target it is applied to when is not a valid credit card
     /// </summary>
-    public class CreditCardAttribute : ContractAspect
+    public sealed class CreditCardAttribute : ContractAspect
     {
         /// <summary>
         /// Regex pattern credit card
@@ -30,12 +30,56 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            if (CreditCardRegex.IsMatch(value as string))
+            if (IsValid(value))
             {
                 return null;
             }
 
             return new ArgumentException(name);
+        }
+
+        /// <summary>
+        /// Return true if credit is valid using same code as .net
+        /// </summary>
+        /// <param name="value">Value</param>
+        /// <returns></returns>
+        private bool IsValid(object value)
+        {
+            if (value == null)
+            {
+                return true;
+            }
+
+            string ccValue = value as string;
+            if (ccValue == null)
+            {
+                return false;
+            }
+            ccValue = ccValue.Replace("-", "");
+            ccValue = ccValue.Replace(" ", "");
+
+            int checksum = 0;
+            bool evenDigit = false;
+
+            // http://www.beachnet.com/~hstiles/cardtype.html
+            foreach (char digit in ccValue.Reverse())
+            {
+                if (digit < '0' || digit > '9')
+                {
+                    return false;
+                }
+
+                int digitValue = (digit - '0') * (evenDigit ? 2 : 1);
+                evenDigit = !evenDigit;
+
+                while (digitValue > 0)
+                {
+                    checksum += digitValue % 10;
+                    digitValue /= 10;
+                }
+            }
+
+            return (checksum % 10) == 0;
         }
     }
 }

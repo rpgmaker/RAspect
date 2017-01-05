@@ -7,19 +7,16 @@ using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class NegativeAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentOutOfRangeException"/> for target it is applied to when value is greater than zero
+    /// </summary>
+    public sealed class NegativeAttribute : LessThanAttribute
     {
         /// <summary>
-        /// Validate value against contract implementation
+        /// Initializes a new instance of the <see cref="NegativeAttribute"/> class.
         /// </summary>
-        /// <param name="value">Value</param>
-        /// <param name="name">Name</param>
-        /// <param name="isParameter">Flag indicating if value is from a parameter</param>
-        /// <param name="attrs">Attribute</param>
-        /// <returns>Exception</returns>
-        protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
+        public NegativeAttribute() : base(-1)
         {
-            throw new NotImplementedException();
         }
     }
 }

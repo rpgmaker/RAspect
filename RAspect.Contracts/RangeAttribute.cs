@@ -7,8 +7,54 @@ using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class RangeAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentOutOfRangeException"/> for target it is applied to when value is outside a given range
+    /// </summary>
+    public class RangeAttribute : ContractAspect
     {
+        /// <summary>
+        /// Min Value
+        /// </summary>
+        internal double Min;
+
+        /// <summary>
+        /// Max Value
+        /// </summary>
+        internal double Max;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RangeAttribute"/> class.
+        /// </summary>
+        /// <param name="min">Min</param>
+        /// <param name="max">Max</param>
+        public RangeAttribute(double min, double max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RangeAttribute"/> class.
+        /// </summary>
+        /// <param name="min">Min</param>
+        /// <param name="max">Max</param>
+        public RangeAttribute(long min, long max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RangeAttribute"/> class.
+        /// </summary>
+        /// <param name="min">Min</param>
+        /// <param name="max">Max</param>
+        public RangeAttribute(ulong min, ulong max)
+        {
+            Min = min;
+            Max = max;
+        }
+
         /// <summary>
         /// Validate value against contract implementation
         /// </summary>
@@ -19,7 +65,21 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            throw new NotImplementedException();
+            if(value == null)
+            {
+                return null;
+            }
+
+            var rangeAttr = attr as RangeAttribute;
+
+            var num = (double)value;
+
+            if(num >= rangeAttr.Min && num <= rangeAttr.Max)
+            {
+                return null;
+            }
+
+            return new ArgumentOutOfRangeException(name);
         }
     }
 }

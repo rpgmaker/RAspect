@@ -7,19 +7,33 @@ using System.Threading.Tasks;
 
 namespace RAspect.Contracts
 {
-    class LessThanAttribute : ContractAspect
+    /// <summary>
+    /// Attribute that throws <see cref="ArgumentOutOfRangeException"/> for target it is applied to when value is greater than a given value
+    /// </summary>
+    public class LessThanAttribute : RangeAttribute
     {
         /// <summary>
-        /// Validate value against contract implementation
+        /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
         /// </summary>
         /// <param name="value">Value</param>
-        /// <param name="name">Name</param>
-        /// <param name="isParameter">Flag indicating if value is from a parameter</param>
-        /// <param name="attrs">Attribute</param>
-        /// <returns>Exception</returns>
-        protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
+        public LessThanAttribute(double value) : base(value < 0 ? double.MinValue : 0, value)
         {
-            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
+        /// </summary>
+        /// <param name="value">Value</param>
+        public LessThanAttribute(long value) : base(value < 0 ? long.MinValue : 0, value)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
+        /// </summary>
+        /// <param name="value">Value</param>
+        public LessThanAttribute(ulong value) : base(value < 0 ? ulong.MinValue : 0, value)
+        {
         }
     }
 }

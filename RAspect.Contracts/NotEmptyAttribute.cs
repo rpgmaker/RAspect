@@ -10,7 +10,7 @@ namespace RAspect.Contracts
     /// <summary>
     /// Attribute that throws <see cref="ArgumentNullException"/> for target it is applied to when they are null, empty
     /// </summary>
-    public class NotEmptyAttribute : ContractAspect
+    public sealed class NotEmptyAttribute : ContractAspect
     {
         /// <summary>
         /// Validate value against contract implementation
