@@ -10,6 +10,7 @@
     using System.Diagnostics;
     using System.Diagnostics.SymbolStore;
     using System.Text.RegularExpressions;
+    using System.IO;
 
     /// <summary>
     /// Aspect builder for generating class with AOP functionalities
@@ -184,16 +185,6 @@
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether flag to determine when to generate assembly representations of current aspects
-        /// </summary>
-        public static bool GenerateAssembly { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to apply optimization for empty weaved methods (Intercept/Exit/Error)
-        /// </summary>
-        public static bool OptimizeEmptyAspects { get; set; } = true;
-
-        /// <summary>
         /// Filter function to apply to assemblies been scanned for aspect
         /// </summary>
         public static Func<Assembly, bool> AssemblyFilter { private get; set; }
@@ -225,17 +216,17 @@
 
                 lock (LockObject)
                 {
-                    Type proxyType = null;
+                    Type weaveType = null;
                     var key = type.FullName;
 
-                    if (!Types.TryGetValue(key, out proxyType))
+                    if (!Types.TryGetValue(key, out weaveType))
                     {
-                        proxyType = WeaveType(type);
+                        weaveType = WeaveType(type);
 
                         //Trigger static constructor
-                        Activator.CreateInstance(proxyType);
+                        Activator.CreateInstance(weaveType);
 
-                        Types.GetOrAdd(key, proxyType);
+                        Types.GetOrAdd(key, weaveType);
                     }
                 }
             }
@@ -274,7 +265,7 @@
         }
 
         /// <summary>
-        /// Activate all proxy
+        /// Weave all methods for current assembly
         /// </summary>
         public static void Weave()
         {
@@ -336,11 +327,14 @@
         /// Save Assembly to disk
         /// </summary>
         /// <param name="fileName">Optional Filename</param>
-        public static void SaveAssembly(string fileName = null)
+        public static void SaveAssembly()
         {
-            if (GenerateAssembly)
+            var asmFileName = string.Concat(asmBuilder.GetName().Name, DLL_EXT);
+            var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, asmFileName);
+
+            if (!File.Exists(fileName))
             {
-                asmBuilder.Save(fileName ?? string.Concat(asmBuilder.GetName().Name, DLL_EXT));
+                asmBuilder.Save(asmFileName);
             }
         }
 
@@ -496,30 +490,27 @@
                     }
 
                     var propMethod = current.Data as MethodInfo;
-
-                    if (OptimizeEmptyAspects)
+                    
+                    if (current.Instruction.Value != OpCodes.Ret.Value)
                     {
-                        if(current.Instruction.Value != OpCodes.Ret.Value)
+                        if (methodName == "OnEntry" || methodName == "OnEnter")
                         {
-                            if (methodName == "OnEntry" || methodName == "OnEnter")
-                            {
-                                analysis.EmptyInterceptMethod = false;
-                            }
+                            analysis.EmptyInterceptMethod = false;
+                        }
 
-                            if (methodName == "OnExit" || methodName == "OnLeave")
-                            {
-                                analysis.EmptyExitMethod = false;
-                            }
+                        if (methodName == "OnExit" || methodName == "OnLeave")
+                        {
+                            analysis.EmptyExitMethod = false;
+                        }
 
-                            if (methodName == "OnException" || methodName == "OnError")
-                            {
-                                analysis.EmptyExceptionMethod = false;
-                            }
+                        if (methodName == "OnException" || methodName == "OnError")
+                        {
+                            analysis.EmptyExceptionMethod = false;
+                        }
 
-                            if(methodName == "OnSuccess" || methodName == "OnComplete")
-                            {
-                                analysis.EmptySuccessMethod = false;
-                            }
+                        if (methodName == "OnSuccess" || methodName == "OnComplete")
+                        {
+                            analysis.EmptySuccessMethod = false;
                         }
                     }
 

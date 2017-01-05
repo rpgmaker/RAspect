@@ -14,8 +14,6 @@ namespace RAspect.ConsoleApp
         
         static void Main(string[] args)
         {
-            ILWeaver.OptimizeEmptyAspects = true;
-            ILWeaver.GenerateAssembly = true;
             ILWeaver.Weave();
             ILWeaver.SaveAssembly();
 
