@@ -332,10 +332,7 @@
             var asmFileName = string.Concat(asmBuilder.GetName().Name, DLL_EXT);
             var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, asmFileName);
 
-            if (!File.Exists(fileName))
-            {
-                asmBuilder.Save(asmFileName);
-            }
+            asmBuilder.Save(asmFileName);
         }
 
         /// <summary>
@@ -1219,6 +1216,15 @@
                     if (beginBlock != null)
                     {
                         beginBlock(method, parameter, il);
+                    }
+                }
+
+                foreach(var aspect in aspects)
+                {
+                    var beginBlock = aspect.OnBeginAspectBlock;
+                    if (beginBlock != null)
+                    {
+                        beginBlock(method, null, il);
                     }
                 }
 

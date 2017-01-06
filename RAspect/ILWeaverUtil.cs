@@ -1168,7 +1168,7 @@ namespace RAspect
 
 
         /// <summary>
-        /// Point destionation pointer to source pointer
+        /// Point destination pointer to source pointer
         /// </summary>
         /// <param name="srcAdr">Source address</param>
         /// <param name="dest">Destination address</param>

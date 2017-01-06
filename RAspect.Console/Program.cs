@@ -23,6 +23,7 @@ namespace RAspect.ConsoleApp
             tobj.myEvent += evt;
             tobj.TestParameterMethod(tobj.Value);
 
+            Console.ReadLine();
             return;
 
             TestPerf("RAspect-Empty Method", () =>

@@ -5,6 +5,7 @@ using RAspect.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 //[assembly: CustomAspect(SearchTypePattern = "TestMyClass3", Target = WeaveTargetType.Methods)]
 //[assembly: Required(SearchTypePattern = "TestMyClass3", SearchMemberPattern = "set_")]
@@ -107,6 +108,7 @@ namespace RAspect.ConsoleApp
             Test2();
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void TestParameterMethod([EmailAddress]string value)
         {
             Console.WriteLine(value);

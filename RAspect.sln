@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Analyzers.Test", "R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Patterns", "RAspect.Patterns\RAspect.Patterns.csproj", "{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Tests", "RAspect.Tests\RAspect.Tests.csproj", "{88654296-095B-41F1-A662-E63A663ECDDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19CEFBFC-C5FB-485F-8EB0-4652716B1C0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88654296-095B-41F1-A662-E63A663ECDDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88654296-095B-41F1-A662-E63A663ECDDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88654296-095B-41F1-A662-E63A663ECDDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88654296-095B-41F1-A662-E63A663ECDDD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -6,7 +6,20 @@ using System.Threading.Tasks;
 
 namespace RAspect.Patterns
 {
-    class SwallowExceptionAttribute
+    /// <summary>
+    /// Attribute when applied to method or properties, swallows thrown exception
+    /// </summary>
+    public class SwallowExceptionAttribute : AspectBase
     {
+        /// <summary>
+        /// Gets weave block type
+        /// </summary>
+        internal override WeaveBlockType BlockType
+        {
+            get
+            {
+                return WeaveBlockType.Wrapping;
+            }
+        }
     }
 }

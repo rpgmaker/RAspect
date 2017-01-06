@@ -42,16 +42,19 @@
   <ItemGroup>
     <Compile Include="AutoLazyAttribute.cs" />
     <Compile Include="CachebleAttribute.cs" />
-    <Compile Include="Logging\LogAspectAttribute.cs" />
+    <Compile Include="Exception\ConcurrentAccessException.cs" />
+    <Compile Include="Exception\ThreadMismatchException.cs" />
+    <Compile Include="Logging\LogAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StaticMethodReplacerAttribute.cs" />
     <Compile Include="SwallowExceptionAttribute.cs" />
+    <Compile Include="Threading\Freezeable.cs" />
     <Compile Include="Threading\FreezeableAttribute.cs" />
     <Compile Include="Threading\ImmutableAttribute.cs" />
     <Compile Include="Threading\ReaderAttribute.cs" />
     <Compile Include="Threading\ThreadAffinityAttribute.cs" />
     <Compile Include="Threading\ThreadSafeAttribute.cs" />
-    <Compile Include="Threading\ThreadUnSafeAttribute.cs" />
+    <Compile Include="Threading\ThreadUnsafeAttribute.cs" />
     <Compile Include="Threading\WriterAttribute.cs" />
   </ItemGroup>
   <ItemGroup>

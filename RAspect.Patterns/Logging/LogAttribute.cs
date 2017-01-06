@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RAspect.Patterns.Exception;
 
-namespace RAspect.Patterns.Threading
+namespace RAspect.Patterns.Logging
 {
     /// <summary>
-    /// Attribute when applied to a type, ensures that only one thread executes in methods of this type. When more than one thread accesses methods of this type, a <see cref="ConcurrentAccessException"/> exception is thrown
+    /// Attribute when applied on method cause tracing before and after execution of this method
     /// </summary>
-    public class ThreadUnSafeAttribute : AspectBase
+    public class LogAttribute : AspectBase
     {
         /// <summary>
         /// Gets weave block type
