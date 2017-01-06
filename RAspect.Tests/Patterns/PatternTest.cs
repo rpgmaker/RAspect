@@ -13,7 +13,6 @@ namespace RAspect.Patterns.Tests
         public PatternTest()
         {
             ILWeaver.Weave<FrozenObject>();
-            ILWeaver.SaveAssembly();
         }
 
         [Fact]
