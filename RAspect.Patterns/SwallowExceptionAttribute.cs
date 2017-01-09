@@ -11,12 +11,13 @@ namespace RAspect.Patterns
     /// <summary>
     /// Attribute when applied to method or properties, swallows thrown exception
     /// </summary>
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Assembly)]
     public class SwallowExceptionAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SwallowExceptionAttribute"/> class.
         /// </summary>
-        public SwallowExceptionAttribute()
+        public SwallowExceptionAttribute() : base(WeaveTargetType.Methods)
         {
             OnBeginAspectBlock = BeginAspectBlock;
             OnEndAspectBlock = EndAspectBlock;
