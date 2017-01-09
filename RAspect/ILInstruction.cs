@@ -31,5 +31,7 @@
         /// Raw Data
         /// </summary>
         public byte[] RawData;
+
+        public bool Last;
     }
 }

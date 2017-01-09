@@ -137,6 +137,8 @@
             var code = OpCodes.Nop;
             ushort value = il[this.position++];
 
+            current.Last = this.position == il.Length;
+
             if (value != 0xfe)
             {
                 code = singleOpCodes[value];

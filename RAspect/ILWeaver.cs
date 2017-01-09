@@ -332,6 +332,15 @@
             var asmFileName = string.Concat(asmBuilder.GetName().Name, DLL_EXT);
             var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, asmFileName);
 
+            try
+            {
+                if (File.Exists(fileName))
+                {
+                    File.Delete(fileName);
+                }
+            }
+            catch { }
+
             asmBuilder.Save(asmFileName);
         }
 
@@ -372,7 +381,7 @@
 
             var typeAspects = GetValidAspects(type, asmAspects);
 
-            if(typeAspects.All(x => x.Exclude))
+            if(typeAspects.Any() && typeAspects.All(x => x.Exclude))
             {
                 return TypeAspectFlags[type] = false;
             }
@@ -1119,7 +1128,8 @@
 
                 var analysises = aspectTypes.Select(x => GetCachedILAnalysis(x)).ToList();
 
-                var hasAdditionalAspects = parameterAspects.Any() || fieldAspects.Any();
+                var hasAdditionalAspects = parameterAspects.Any() || fieldAspects.Any() ||
+                    methAspects.Any(x => x.OnBeginAspectBlock != null || x.OnEndAspectBlock != null);
 
                 var allEmptyMethods = analysises.All(x => x.EmptyExceptionMethod && x.EmptyExitMethod && x.EmptyInterceptMethod && x.EmptySuccessMethod) 
                     && !hasAdditionalAspects;
@@ -1204,6 +1214,26 @@
             var parameters = method.GetParameters();
             MakeMethodGenericIfNeeded(method, meth);
 
+            foreach(var customAttr in method.CustomAttributes)
+            {
+                var fields = customAttr.NamedArguments.Where(x => x.IsField);
+                var properties = customAttr.NamedArguments.Where(x => !x.IsField);
+                if (!fields.Any() && !properties.Any())
+                    meth.SetCustomAttribute(new CustomAttributeBuilder(customAttr.Constructor, customAttr.ConstructorArguments.Select(x => x.Value).ToArray()));
+                else if (fields.Any())
+                    meth.SetCustomAttribute(new CustomAttributeBuilder(customAttr.Constructor, 
+                        customAttr.ConstructorArguments.Select(x => x.Value).ToArray(), 
+                        fields.Select(x => (FieldInfo)x.MemberInfo).ToArray(),
+                        fields.Select(x => x.TypedValue.Value).ToArray()));
+                else if (properties.Any())
+                    meth.SetCustomAttribute(new CustomAttributeBuilder(customAttr.Constructor, 
+                        customAttr.ConstructorArguments.Select(x => x.Value).ToArray(), 
+                        properties.Select(x => (PropertyInfo)x.MemberInfo).ToArray(),
+                        properties.Select(x => x.TypedValue.Value).ToArray()));
+            }
+
+            meth.SetImplementationFlags(method.MethodImplementationFlags);
+
             var il = meth.GetILGenerator();
 
             try
@@ -1229,6 +1259,27 @@
                 }
 
                 ILWeaverUtil.CopyIL(type, method, il, type.Module, aspects, methodContext, sil);
+
+                for (var i = 0; i < parameterAspects.Count; i++)
+                {
+                    var aspect = parameterAspects[i];
+                    var parameter = parameters[i];
+                    var endBlock = aspect.OnEndAspectBlock;
+                    if (endBlock != null)
+                    {
+                        endBlock(method, parameter, il);
+                    }
+                }
+
+                foreach (var aspect in aspects)
+                {
+                    var endBlock = aspect.OnEndAspectBlock;
+                    if (endBlock != null)
+                    {
+                        endBlock(method, null, il);
+                    }
+                }
+                il.Emit(OpCodes.Ret);
             }
             catch (Exception ex)
             {

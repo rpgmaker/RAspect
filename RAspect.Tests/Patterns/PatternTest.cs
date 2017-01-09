@@ -10,9 +10,18 @@ namespace RAspect.Patterns.Tests
     /// </summary>
     public class PatternTest
     {
-        public PatternTest()
+        static PatternTest()
         {
             ILWeaver.Weave<FrozenObject>();
+            ILWeaver.Weave<PatternModel>();
+            ILWeaver.SaveAssembly();
+        }
+
+        [Fact]
+        public void CanSwallowException()
+        {
+            var model = new PatternModel();
+            model.CreateException();
         }
 
         [Fact]

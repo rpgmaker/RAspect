@@ -415,8 +415,8 @@ namespace RAspect
                                 InvokeNonPublicMember(type, il, adrField, isFieldStatic, false, sil);
                             }
                         }
-
-                        il.Emit(instruction);
+                        if (!current.Last)
+                            il.Emit(instruction);
                     }
                 }
             }
