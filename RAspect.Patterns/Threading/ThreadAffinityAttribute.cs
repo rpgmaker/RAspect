@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RAspect.Patterns.Exception;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace RAspect.Patterns.Threading
 {
@@ -13,6 +15,14 @@ namespace RAspect.Patterns.Threading
     public class ThreadAffinityAttribute : AspectBase
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="ThreadAffinityAttribute"/> class.
+        /// </summary>
+        public ThreadAffinityAttribute()
+        {
+            OnBeginAspectBlock = BeginAspectBlock;
+        }
+
+        /// <summary>
         /// Gets weave block type
         /// </summary>
         internal override WeaveBlockType BlockType
@@ -21,6 +31,16 @@ namespace RAspect.Patterns.Threading
             {
                 return WeaveBlockType.Wrapping;
             }
+        }
+
+        /// <summary>
+        /// Aspect code to inject at the beginning of weaved method
+        /// </summary>
+        /// <param name="method">Method</param>
+        /// <param name="parameter">Parameter</param>
+        /// <param name="il">ILGenerator</param>
+        internal void BeginAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
+        {
         }
     }
 }

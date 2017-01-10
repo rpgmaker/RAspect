@@ -1,3 +1,4 @@
+using RAspect.Patterns.Exception;
 using RAspect.Patterns.Threading;
 using RAspect.Tests.Patterns;
 using System;
@@ -14,6 +15,7 @@ namespace RAspect.Patterns.Tests
         {
             ILWeaver.Weave<FrozenObject>();
             ILWeaver.Weave<PatternModel>();
+            ILWeaver.Weave<ImmutableObject>();
             ILWeaver.SaveAssembly();
         }
 
@@ -25,6 +27,17 @@ namespace RAspect.Patterns.Tests
         }
 
         [Fact]
+        public void CannotModifyInstanceThatIsImmutable()
+        {
+            var obj = new ImmutableObject("Test Value");
+
+            Assert.Throws<ObjectReadOnlyException>(() =>
+            {
+                obj.Name = "New Test Value";
+            });
+        }
+
+        [Fact]
         public void CanFreezeObject()
         {
             var obj = new FrozenObject();
@@ -32,7 +45,7 @@ namespace RAspect.Patterns.Tests
 
             Freezeable.Freeze(obj);
 
-            Assert.Throws<System.InvalidOperationException>(() =>
+            Assert.Throws<ObjectReadOnlyException>(() =>
             {
                 obj.ID = 10;
             });

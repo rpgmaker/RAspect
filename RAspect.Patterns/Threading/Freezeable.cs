@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RAspect.Patterns.Exception;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,7 +60,7 @@ namespace RAspect.Patterns.Threading
         {
             if (IsFrozen(value))
             {
-                throw new InvalidOperationException("Attempted to modify a frozen instance");
+                throw new ObjectReadOnlyException();
             }
         }
     }

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +14,14 @@ namespace RAspect.Patterns
     public class CachebleAttribute : AspectBase
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="CachebleAttribute"/> class.
+        /// </summary>
+        public CachebleAttribute()
+        {
+            OnBeginAspectBlock = BeginAspectBlock;
+        }
+
+        /// <summary>
         /// Gets weave block type
         /// </summary>
         internal override WeaveBlockType BlockType
@@ -20,6 +30,16 @@ namespace RAspect.Patterns
             {
                 return WeaveBlockType.Wrapping;
             }
+        }
+
+        /// <summary>
+        /// Aspect code to inject at the beginning of weaved method
+        /// </summary>
+        /// <param name="method">Method</param>
+        /// <param name="parameter">Parameter</param>
+        /// <param name="il">ILGenerator</param>
+        internal void BeginAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
+        {
         }
     }
 }

@@ -1146,11 +1146,6 @@ namespace RAspect
         /// <param name="dest">Destination Method</param>
         private static void ReplaceMethod(MethodBase source, MethodBase dest)
         {
-            if (!MethodSignaturesEqual(source, dest))
-            {
-                throw new ArgumentException("The method signatures are not the same.", "source");
-            }
-
             ReplaceMethod(GetMethodAddress(source), dest);
         }
 
@@ -1361,45 +1356,6 @@ namespace RAspect
         private static IntPtr GetMethodAddress(IntPtr handle)
         {
             return new IntPtr(((int*)handle.ToPointer() + 2));
-        }
-
-        /// <summary>
-        /// Determine if given methods are equal
-        /// </summary>
-        /// <param name="method1">Method</param>
-        /// <param name="method2">Method</param>
-        /// <returns>Bool</returns>
-        private static bool MethodSignaturesEqual(MethodBase method1, MethodBase method2)
-        {
-            if (method1.IsGenericMethod || method2.IsGenericMethod)
-            {
-                return true;
-            }
-
-            var return1 = GetMethodReturnType(method1);
-            var return2 = GetMethodReturnType(method2);
-            if (return1 != return2)
-            {
-                return false;
-            }
-
-            var params1 = method1.GetParameters();
-            var params2 = method2.GetParameters();
-
-            if (params1.Length != params2.Length)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < params1.Length; i++)
-            {
-                if (params1[i].ParameterType != params2[i].ParameterType)
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         /// <summary>
