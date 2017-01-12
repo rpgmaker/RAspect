@@ -15,6 +15,12 @@ namespace RAspect.Patterns
     public class SwallowExceptionAttribute : AspectBase
     {
         /// <summary>
+        /// Local Builder for return value
+        /// </summary>
+        [ThreadStatic]
+        private static LocalBuilder exLocal;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SwallowExceptionAttribute"/> class.
         /// </summary>
         public SwallowExceptionAttribute() : base(WeaveTargetType.Methods)
@@ -33,9 +39,6 @@ namespace RAspect.Patterns
                 return WeaveBlockType.Inline;
             }
         }
-
-        [ThreadStatic]
-        private static LocalBuilder exLocal;
 
         /// <summary>
         /// Aspect code to inject at the beginning of weaved method

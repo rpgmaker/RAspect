@@ -1359,23 +1359,6 @@ namespace RAspect
         }
 
         /// <summary>
-        /// Get return type for given method
-        /// </summary>
-        /// <param name="method">Method</param>
-        /// <returns>Type</returns>
-        private static Type GetMethodReturnType(MethodBase method)
-        {
-            MethodInfo methodInfo = method as MethodInfo;
-
-            if (methodInfo == null)
-            {
-                throw new ArgumentException("Constructors is not supported");
-            }
-
-            return methodInfo.ReturnType;
-        }
-
-        /// <summary>
         /// Determine if .Net Framework is greater than .Net 2.0
         /// </summary>
         /// <returns>Bool</returns>

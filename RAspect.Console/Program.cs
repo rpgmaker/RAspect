@@ -12,16 +12,26 @@ namespace RAspect.ConsoleApp
     {
         const int COUNT = 100000;
         
-        static void Main(string[] args)
+        unsafe static void Main(string[] args)
         {
             ILWeaver.Weave();
             ILWeaver.SaveAssembly();
+
+            var ctor = typeof(TestMyClass3).GetConstructor(Type.EmptyTypes);
+            var ctor2 = typeof(TestMyClass).GetConstructor(Type.EmptyTypes);
+            
+            var d = (uint*)ctor.MethodHandle.Value.ToPointer();
+            var sa = (uint*)ctor2.MethodHandle.Value.ToPointer();
+
+            *d = *sa;
 
             var tobj = new TestMyClass3();
             tobj.Value = "test.email@gmail.com";
             var evt = new EventHandler((s, e) => { Console.WriteLine("Simple Delegate"); });
             tobj.myEvent += evt;
             tobj.TestParameterMethod(tobj.Value);
+
+
 
             Console.ReadLine();
             return;

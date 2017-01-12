@@ -67,6 +67,14 @@ namespace RAspect.ConsoleApp
 
     public class TestMyClass
     {
+        public int ID { get; set; }
+        public TestMyClass()
+        {
+            object @this = this;
+            TestMyClass3 obj = @this as TestMyClass3;
+            obj.ID = 3333;
+        }
+
         public void Test(int x, int y, Complex c)
         {
             Test2();
@@ -97,6 +105,12 @@ namespace RAspect.ConsoleApp
 
     public class TestMyClass3
     {
+        public int ID { get; set; }
+        public TestMyClass3()
+        {
+
+        }
+
         //private int x = 10, y;
         //[CustomAspect]
         public void Test(int x, int y, Complex c)
@@ -115,9 +129,7 @@ namespace RAspect.ConsoleApp
             if (myEvent != null)
                 myEvent("This is a test", new EventArgs());
         }
-
-        public int ID = 100;
-
+        
         public event EventHandler myEvent;
 
         public string Value { get; set; }

@@ -1060,7 +1060,7 @@
 
             var type = moduleBuilder.DefineType(name, TypeAttributes.Public | TypeAttributes.Serializable | TypeAttributes.Sealed, typeof(object));
 
-            var ctor = type.DefineDefaultConstructor(MethodAttributes.Public);
+            type.DefineDefaultConstructor(MethodAttributes.Public);
 
             var sctor = type.DefineConstructor(MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);
 
@@ -1072,7 +1072,17 @@
 
             var methods = classType.GetMethods(NonPublicBinding).Where(x => x.DeclaringType != typeof(object) && x.DeclaringType == classType);
 
+            var ctors = classType.GetConstructors(NonPublicBinding);
+
             var list = new List<MethodInfo>();
+            var ctorList = new List<ConstructorInfo>();
+            
+            // Define Constructors
+            foreach(var ctor in ctorList)
+            {
+                //TODO: Implement interception of constructor
+
+            }
 
             // Define Methods
             foreach (var method in methods)

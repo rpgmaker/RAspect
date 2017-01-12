@@ -43,6 +43,7 @@
     <Compile Include="AutoLazyAttribute.cs" />
     <Compile Include="CachebleAttribute.cs" />
     <Compile Include="Exception\ConcurrentAccessException.cs" />
+    <Compile Include="Exception\ObjectReadOnlyException.cs" />
     <Compile Include="Exception\ThreadMismatchException.cs" />
     <Compile Include="Logging\LogAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

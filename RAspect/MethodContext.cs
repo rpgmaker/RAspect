@@ -54,7 +54,7 @@
         /// <summary>
         /// Gets or sets Method
         /// </summary>
-        public MethodInfo Method { get; set; }
+        public MethodBase Method { get; set; }
 
         /// <summary>
         /// Gets or sets Method Attributes

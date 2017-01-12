@@ -2,6 +2,8 @@ using RAspect.Patterns.Exception;
 using RAspect.Patterns.Threading;
 using RAspect.Tests.Patterns;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace RAspect.Patterns.Tests
@@ -35,6 +37,22 @@ namespace RAspect.Patterns.Tests
             {
                 obj.Name = "New Test Value";
             });
+        }
+
+        [Fact]
+        public void WillNotThrowDivisibleException()
+        {
+            const int COUNT = 1000;
+            var model = new PatternModel();
+            var tasks = new Task[COUNT];
+
+            for (var i = 0; i < COUNT; i++)
+            {
+                tasks[i] = Task.Factory.StartNew(() =>
+                model.DivideNumberByZeroThreadUnSafe(), TaskCreationOptions.LongRunning);
+            }
+
+            Task.WaitAll(tasks);
         }
 
         [Fact]

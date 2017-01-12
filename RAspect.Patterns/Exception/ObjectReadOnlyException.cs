@@ -11,6 +11,12 @@ namespace RAspect.Patterns.Exception
     /// </summary>
     public class ObjectReadOnlyException : ApplicationException
     {
+        public ObjectReadOnlyException(string message) : base(message)
+        {
+        }
 
+        public ObjectReadOnlyException() : base()
+        {
+        }
     }
 }

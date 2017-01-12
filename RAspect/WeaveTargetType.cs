@@ -13,12 +13,13 @@ namespace RAspect
     public enum WeaveTargetType
     {
         None = 0,
-        Constructors = 2,
-        Methods = 4,
-        Properties = 8,
-        Fields = 16,
-        Events = 32,
-        Parameters = 64,
-        All = Constructors | Methods | Properties | Fields | Events | Parameters
+        Assembly = 2,
+        Constructors = 4,
+        Methods = 8,
+        Properties = 16,
+        Fields = 32,
+        Events = 64,
+        Parameters = 64 * 2,
+        All = Assembly | Constructors | Methods | Properties | Fields | Events | Parameters
     }
 }
