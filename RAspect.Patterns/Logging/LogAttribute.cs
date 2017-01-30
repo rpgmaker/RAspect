@@ -27,7 +27,11 @@ namespace RAspect.Patterns.Logging
         /// <param name="context">MethodContext</param>
         internal override void OnEntry(MethodContext context)
         {
-            base.OnEntry(context);
+            var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
+            var logType = attr != null ? attr.Type : LoggingType.Debug;
+
+            Backend.Log(logType, "Entering {0}({1})", null, context.Method.Name, string.Join(",", 
+                context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))));
         }
 
         /// <summary>
@@ -36,7 +40,11 @@ namespace RAspect.Patterns.Logging
         /// <param name="context">MethodContext</param>
         internal override void OnExit(MethodContext context)
         {
-            base.OnExit(context);
+            var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
+            var logType = attr != null ? attr.Type : LoggingType.Debug;
+
+            Backend.Log(logType, "Exiting {0}({1})", null, context.Method.Name, string.Join(",",
+                context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))));
         }
 
         /// <summary>
@@ -45,7 +53,11 @@ namespace RAspect.Patterns.Logging
         /// <param name="context">MethodContext</param>
         internal override void OnSuccess(MethodContext context)
         {
-            base.OnSuccess(context);
+            var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
+            var logType = attr != null ? attr.Type : LoggingType.Debug;
+
+            Backend.Log(logType, "Completed {0}({1}) -> {2}", null, context.Method.Name, string.Join(",",
+                context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))), context.Returns);
         }
 
         /// <summary>
@@ -55,13 +67,28 @@ namespace RAspect.Patterns.Logging
         /// <param name="ex">Exception that occurred while executing weaved method</param>
         internal override void OnException(MethodContext context, System.Exception ex)
         {
-            base.OnException(context, ex);
+            var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
+            var logType = attr != null ? attr.Type : LoggingType.Debug;
+
+            Backend.Log(logType, "Error {0}({1})", ex, context.Method.Name, string.Join(",",
+                context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))));
         }
 
         /// <summary>
         /// Gets or sets logging type
         /// </summary>
         public LoggingType Type { get; set; }
+
+        /// <summary>
+        /// Gets backend
+        /// </summary>
+        public LoggingBackend Backend
+        {
+            get
+            {
+                return LoggingManager.Backend;
+            }
+        }
 
         /// <summary>
         /// Gets weave block type

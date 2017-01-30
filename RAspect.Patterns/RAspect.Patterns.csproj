@@ -46,7 +46,12 @@
     <Compile Include="Exception\ObjectReadOnlyException.cs" />
     <Compile Include="Exception\ThreadingValidationException.cs" />
     <Compile Include="Exception\ThreadMismatchException.cs" />
+    <Compile Include="Logging\ConsoleLoggingBackend.cs" />
     <Compile Include="Logging\LogAttribute.cs" />
+    <Compile Include="Logging\LoggingBackend.cs" />
+    <Compile Include="Logging\LoggingManager.cs" />
+    <Compile Include="Logging\LoggingType.cs" />
+    <Compile Include="Logging\TraceLoggingBackend.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StaticMethodReplacerAttribute.cs" />
     <Compile Include="SwallowExceptionAttribute.cs" />

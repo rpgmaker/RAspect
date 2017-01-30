@@ -11,5 +11,18 @@ namespace RAspect.Patterns.Logging
     /// </summary>
     public abstract class LoggingBackend
     {
+        /// <summary>
+        /// Gets or sets logging format
+        /// </summary>
+        public string Format { get; set; }
+
+        /// <summary>
+        /// Log message using the given parameters
+        /// </summary>
+        /// <param name="logType">Logging Type</param>
+        /// <param name="message">Message</param>
+        /// <param name="ex">Exception</param>
+        /// <param name="args">Arguments</param>
+        public abstract void Log(LoggingType logType, string message, System.Exception ex, params object[] args);
     }
 }

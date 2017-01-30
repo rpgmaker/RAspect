@@ -19,7 +19,7 @@ namespace RAspect.Patterns.Logging
         /// <summary>
         /// Default backend
         /// </summary>
-        private static LoggingBackend Default = new DefaultLoggingBackend();
+        private static LoggingBackend Default = new ConsoleLoggingBackend();
         
         /// <summary>
         /// Configure backend to use for logging
