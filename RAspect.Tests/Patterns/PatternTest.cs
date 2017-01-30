@@ -3,8 +3,10 @@ using RAspect.Patterns.Threading;
 using RAspect.Tests.Patterns;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace RAspect.Patterns.Tests
 {
@@ -18,7 +20,14 @@ namespace RAspect.Patterns.Tests
             ILWeaver.Weave<FrozenObject>();
             ILWeaver.Weave<PatternModel>();
             ILWeaver.Weave<ImmutableObject>();
-            ILWeaver.SaveAssembly();
+            ILWeaver.Weave<ReaderWriterObject>();
+            //ILWeaver.SaveAssembly();
+        }
+
+        private ITestOutputHelper output = null;
+        public PatternTest(ITestOutputHelper output)
+        {
+            this.output = output;
         }
 
         [Fact]
@@ -26,6 +35,50 @@ namespace RAspect.Patterns.Tests
         {
             var model = new PatternModel();
             model.CreateException();
+        }
+
+        [Fact]
+        public void ShouldFailWeaveForReaderWriterUnSync()
+        {
+            Assert.Throws<ThreadingValidationException>(() =>
+                ILWeaver.Weave<ReaderWriterUnSyncObject>());
+        }
+
+        [Fact]
+        public void ShouldNotThrowExceptionForAccessingCollectionInMultipleThread()
+        {
+            var obj = new ReaderWriterObject();
+            var factor = 2;
+
+            var tasks = new List<Task>();
+
+            System.Exception ex = null;
+
+            try
+            {
+                tasks.AddRange(ExecuteOnThreads(100, () =>
+                {
+                    for (var i = 0; i < 10; i++)
+                    {
+                        obj.Add(i, factor);
+                    }
+                }));
+
+                tasks.AddRange(ExecuteOnThreads(100, () =>
+                {
+                    for (var i = 0; i < 10; i++)
+                    {
+                       //var value = obj.GetValue();
+                    }
+                }));
+
+                Task.WaitAll(tasks.ToArray());
+            }catch(System.Exception e)
+            {
+                ex = e;
+            }
+
+            Assert.Null(ex);
         }
 
         [Fact]
@@ -40,19 +93,13 @@ namespace RAspect.Patterns.Tests
         }
 
         [Fact]
-        public void WillNotThrowDivisibleException()
+        public void WillNotThrowExceptionDueToUnSafeThread()
         {
-            const int COUNT = 1000;
-            var model = new PatternModel();
-            var tasks = new Task[COUNT];
-
-            for (var i = 0; i < COUNT; i++)
-            {
-                tasks[i] = Task.Factory.StartNew(() =>
-                model.DivideNumberByZeroThreadUnSafe(), TaskCreationOptions.LongRunning);
-            }
-
-            Task.WaitAll(tasks);
+            int expected = 10;
+            var model = new PatternModel(output);
+            var count = 0;
+            Task.WaitAll(ExecuteOnThreads(expected, () => model.NumberThreadUnSafe(ref count)));
+            Assert.Equal(expected, count);
         }
 
         [Fact]
@@ -67,6 +114,19 @@ namespace RAspect.Patterns.Tests
             {
                 obj.ID = 10;
             });
+        }
+        
+        private Task[] ExecuteOnThreads(int threads, Action action)
+        {
+            var tasks = new Task[threads];
+
+            for (var i = 0; i < threads; i++)
+            {
+                tasks[i] = Task.Factory.StartNew(() =>
+                action());
+            }
+
+            return tasks;
         }
     }
 }

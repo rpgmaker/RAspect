@@ -20,6 +20,7 @@ namespace RAspect
         Fields = 32,
         Events = 64,
         Parameters = 64 * 2,
-        All = Assembly | Constructors | Methods | Properties | Fields | Events | Parameters
+        Class = Parameters * 2,
+        All = Assembly | Constructors | Methods | Properties | Fields | Events | Parameters | Class
     }
 }

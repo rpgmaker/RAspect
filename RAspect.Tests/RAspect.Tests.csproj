@@ -71,6 +71,8 @@
     <Compile Include="Patterns\ImmutableObject.cs" />
     <Compile Include="Patterns\PatternModel.cs" />
     <Compile Include="Patterns\PatternTest.cs" />
+    <Compile Include="Patterns\ReaderWriterObject.cs" />
+    <Compile Include="Patterns\ReaderWriterUnSyncObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

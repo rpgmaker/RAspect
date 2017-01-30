@@ -11,46 +11,38 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied on a method specified that method requires read access to the object
     /// </summary>
-    public class ReaderAttribute : AspectBase
+    public class ReaderAttribute : ReaderWriterBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReaderAttribute"/> class.
+        /// Enter ReadLock Method
         /// </summary>
-        public ReaderAttribute()
-        {
-            OnBeginAspectBlock = BeginAspectBlock;
-            OnEndAspectBlock = EndAspectBlock;
-        }
+        private readonly static MethodInfo EnterReadLockMethod = typeof(System.Threading.ReaderWriterLockSlim).GetMethod("EnterReadLock", ILWeaver.NonPublicBinding);
 
         /// <summary>
-        /// Gets weave block type
+        /// Exit ReadLock Method
         /// </summary>
-        internal override WeaveBlockType BlockType
+        private readonly static MethodInfo ExitReadLockMethod = typeof(System.Threading.ReaderWriterLockSlim).GetMethod("ExitReadLock", ILWeaver.NonPublicBinding);
+
+        /// <summary>
+        /// Gets Enter Method
+        /// </summary>
+        internal override MethodInfo EnterMethod
         {
             get
             {
-                return WeaveBlockType.Wrapping;
+                return EnterReadLockMethod;
             }
         }
 
         /// <summary>
-        /// Aspect code to inject at the beginning of weaved method
+        /// Gets Exit Method
         /// </summary>
-        /// <param name="method">Method</param>
-        /// <param name="parameter">Parameter</param>
-        /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal override MethodInfo ExitMethod
         {
-        }
-
-        /// <summary>
-        /// Aspect code to inject at the end of weaved method
-        /// </summary>
-        /// <param name="method">Method</param>
-        /// <param name="parameter">Parameter</param>
-        /// <param name="il">ILGenerator</param>
-        internal void EndAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
-        {
+            get
+            {
+                return ExitReadLockMethod;
+            }
         }
     }
 }

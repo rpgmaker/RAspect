@@ -56,7 +56,7 @@ namespace RAspect.Patterns.Threading
         /// Throw exception if current instance is frozen
         /// </summary>
         /// <param name="value">Value</param>
-        public static void ThrowIfFrozen(object value)
+        internal static void ThrowIfFrozen(object value)
         {
             if (IsFrozen(value))
             {

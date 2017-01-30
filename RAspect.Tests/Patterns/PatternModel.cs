@@ -2,17 +2,29 @@
 using RAspect.Patterns.Threading;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace RAspect.Tests.Patterns
 {
     public class PatternModel
     {
-        private static int syncValue = 1;
+        ITestOutputHelper output = null;
+        public PatternModel()
+        {
 
+        }
+
+        public PatternModel(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+        
         [MethodImpl(MethodImplOptions.NoInlining)]
         [SwallowException]
         public int CreateException()
@@ -24,14 +36,12 @@ namespace RAspect.Tests.Patterns
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         [ThreadSafe]
-        public void DivideNumberByZeroThreadUnSafe()
+        public void NumberThreadUnSafe(ref int count)
         {
-            if (syncValue != 0)
-            {
-                var x = 2 / syncValue;
-            }
-
-            syncValue = 0;
+            var c = count;
+            c++;
+            Thread.Sleep(1);
+            count = c;
         }
     }
 }

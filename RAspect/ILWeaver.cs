@@ -230,7 +230,7 @@
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!ex.GetType().FullName.StartsWith("RAspect."))
             {
                 throw new ApplicationException(string.Format("Error weaving methods for {0}", type.FullName), ex);
             }
@@ -1072,6 +1072,10 @@
 
             var methods = classType.GetMethods(NonPublicBinding).Where(x => x.DeclaringType != typeof(object) && x.DeclaringType == classType);
 
+            //Validate aspect for given type
+            foreach (var typeAspect in typeAspects)
+                typeAspect.ValidateRules(classType, methods);
+
             var ctors = classType.GetConstructors(NonPublicBinding);
 
             var list = new List<MethodInfo>();
@@ -1097,8 +1101,17 @@
 
                 var propInfo = isProperty ? classType.GetProperty(newMethodName, NonPublicBinding) : null;
 
+                //Flag to make sure it is really a property and not a method starting with get_ or set_
+                isProperty = propInfo != null;
+
                 var aspectAttrs = (isProperty ? propInfo.GetCustomAttributes<AspectBase>() :
                     method.GetCustomAttributes<AspectBase>()).Where(x => !x.Exclude);
+
+                //Used for explictly attribute applied to getter and setter
+                if (isProperty && !aspectAttrs.Any())
+                {
+                    aspectAttrs = method.GetCustomAttributes<AspectBase>().Where(x => !x.Exclude);
+                }
 
                 var parameterAspects = parameters.SelectMany(x => x.GetCustomAttributes<AspectBase>()).Where(x => x != null).Where(x => !x.Exclude).ToList();
 

@@ -134,7 +134,13 @@ namespace RAspect
 
             foreach (var local in body.LocalVariables)
             {
-                var localVariable = il.DeclareLocal(local.LocalType, local.IsPinned);
+                var localType = local.LocalType;
+                if (!localType.IsPublic)
+                {
+                    localType = localType.IsCompilerGenerated() ? type : typeof(object);
+                }
+
+                var localVariable = il.DeclareLocal(localType, local.IsPinned);
 #if DEBUG
                 var localIndex = local.LocalIndex;
                 var localName = string.Empty;
@@ -239,8 +245,8 @@ namespace RAspect
                             {
                                 var isFieldStatic = dataField.IsStatic;
                                 var dataFieldType = dataField.FieldType;
-                                
-                                var isCompilerGenerated = dataField.DeclaringType.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
+
+                                var isCompilerGenerated = dataField.DeclaringType.IsCompilerGenerated();
 
                                 if (isCompilerGenerated)
                                 {
@@ -323,7 +329,7 @@ namespace RAspect
 
                                 if (instructionValue == OpCodes.Ldftn.Value)
                                 {
-                                    var hasCompilerGenerated = dataMethod.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
+                                    var hasCompilerGenerated = dataMethod.IsCompilerGenerated();
 
                                     il.Emit(OpCodes.Ldftn, GenerateFunctionCallForDelegate(type, dataMethod, useUnderlyingType: !hasCompilerGenerated, sil: sil));
                                 }
@@ -335,11 +341,19 @@ namespace RAspect
                             else if (instructionValue == OpCodes.Newobj.Value)
                             {
                                 var ctor = data as ConstructorInfo;
-                                var nonPublic = !ctor.DeclaringType.IsPublic || !ctor.IsPublic;
+                                var ctorType = ctor.DeclaringType;
+                                var nonPublic = !ctorType.IsPublic || !ctor.IsPublic;
 
                                 if (nonPublic)
                                 {
-                                    InvokeNonPublicMethod(type, il, ctor);
+                                    var isCompilerGenerated = ctorType.IsCompilerGenerated();
+
+                                    if (isCompilerGenerated && !ctor.IsStatic)
+                                    {
+                                        il.Emit(OpCodes.Ldarg_0);
+                                    }
+                                    else
+                                        InvokeNonPublicMethod(type, il, ctor, sil: sil);
                                 }
                                 else
                                 {
@@ -420,6 +434,26 @@ namespace RAspect
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns true if the given type is compiler generated
+        /// </summary>
+        /// <param name="type">Type</param>
+        /// <returns>Bool</returns>
+        public static bool IsCompilerGenerated(this Type type)
+        {
+            return type.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
+        }
+
+        /// <summary>
+        /// Returns true if the given method is compiler generated
+        /// </summary>
+        /// <param name="method">Method</param>
+        /// <returns>Bool</returns>
+        public static bool IsCompilerGenerated(this MethodInfo method)
+        {
+            return method.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
         }
 
         /// <summary>
@@ -740,7 +774,6 @@ namespace RAspect
             var parameters = method.GetParameters().Select(x => x.ParameterType).ToArray();
             var isInstance = !method.IsStatic && !method.IsConstructor;
             var key = (method.Name + declaringType.FullName + "Invoke").Replace(".", string.Empty);
-            
 
             var nonPublicMethod = FastMethodTypes.GetOrAdd(key, _ => {
                 var isVoid = methodType == typeof(void);
@@ -858,15 +891,16 @@ namespace RAspect
                 {
                     var paramType = paramArray[i];
 
-                    if(i == 0 && isInstance)
+                    if(i == 0 && isInstance && !paramType.IsPublic)
                     {
-                        paramType = typeof(object);
+                        paramType = paramType.IsCompilerGenerated() ? typeBuilder : typeof(object);
                     }
 
                     typeInvokeParameters.Add(paramType);
                 }
 
-                var typeInvoke = typeBuilder.DefineMethod(key, MethodAttributes.Public | MethodAttributes.Static, meth.ReturnType, typeInvokeParameters.ToArray());
+                var methReturnType = !methodType.IsPublic ? typeof(object) : methodType;
+                var typeInvoke = typeBuilder.DefineMethod(key, MethodAttributes.Public | MethodAttributes.Static, methReturnType, typeInvokeParameters.ToArray());
 
                 var til = typeInvoke.GetILGenerator();
                 var tilType = (delFastField ?? delField).FieldType;
@@ -917,13 +951,13 @@ namespace RAspect
 
                 if (!isVoid)
                 {
-                    if (methodType.IsValueType)
+                    if (methReturnType.IsValueType)
                     {
-                        til.Emit(OpCodes.Unbox_Any, methodType);
+                        til.Emit(OpCodes.Unbox_Any, methReturnType);
                     }
                     else
                     {
-                        til.Emit(OpCodes.Isinst, methodType);
+                        til.Emit(OpCodes.Isinst, methReturnType);
                     }
                 }
 

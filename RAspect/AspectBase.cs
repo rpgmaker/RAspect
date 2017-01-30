@@ -1,6 +1,7 @@
 ﻿namespace RAspect
 {
     using System;
+    using System.Collections.Generic;
     using System.Reflection;
     using System.Reflection.Emit;
 
@@ -53,6 +54,15 @@
         /// Determine if aspect should be excluded
         /// </summary>
         public bool Exclude { get; set; } = false;
+
+        /// <summary>
+        /// Execute validation rules of aspect on given type
+        /// </summary>
+        /// <param name="type">Type</param>
+        /// <param name="methods">Type Methods</param>
+        internal virtual void ValidateRules(Type type, IEnumerable<MethodInfo> methods)
+        {
+        }
 
         /// <summary>
         /// Gets or sets aspect code to inject at beginning of weaved method
