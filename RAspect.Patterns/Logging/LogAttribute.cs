@@ -30,7 +30,7 @@ namespace RAspect.Patterns.Logging
             var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
             var logType = attr != null ? attr.Type : LoggingType.Debug;
 
-            Backend.Log(logType, "Entering {0}({1})", null, context.Method.Name, string.Join(",", 
+            Backend.Log(context, logType, "Entering {0}({1})", null, context.Method.Name, string.Join(",", 
                 context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))));
         }
 
@@ -43,7 +43,7 @@ namespace RAspect.Patterns.Logging
             var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
             var logType = attr != null ? attr.Type : LoggingType.Debug;
 
-            Backend.Log(logType, "Exiting {0}({1})", null, context.Method.Name, string.Join(",",
+            Backend.Log(context, logType, "Exiting {0}({1})", null, context.Method.Name, string.Join(",",
                 context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))));
         }
 
@@ -56,7 +56,7 @@ namespace RAspect.Patterns.Logging
             var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
             var logType = attr != null ? attr.Type : LoggingType.Debug;
 
-            Backend.Log(logType, "Completed {0}({1}) -> {2}", null, context.Method.Name, string.Join(",",
+            Backend.Log(context, logType, "Completed {0}({1}) -> {2}", null, context.Method.Name, string.Join(",",
                 context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))), context.Returns);
         }
 
@@ -70,7 +70,7 @@ namespace RAspect.Patterns.Logging
             var attr = context.Attributes.Where(x => x is LogAttribute).FirstOrDefault() as LogAttribute;
             var logType = attr != null ? attr.Type : LoggingType.Debug;
 
-            Backend.Log(logType, "Error {0}({1})", ex, context.Method.Name, string.Join(",",
+            Backend.Log(context, logType, "Error {0}({1})", ex, context.Method.Name, string.Join(",",
                 context.Arguments.Select(x => string.Format("{0} = {1}", x.Name, x.Value))));
         }
 

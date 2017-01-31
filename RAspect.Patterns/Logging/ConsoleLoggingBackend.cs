@@ -14,11 +14,12 @@ namespace RAspect.Patterns.Logging
         /// <summary>
         /// Log message using the given parameters
         /// </summary>
+        /// <param name="context">Context</param>
         /// <param name="logType">Logging Type</param>
         /// <param name="message">Message</param>
         /// <param name="ex">Exception</param>
         /// <param name="args">Arguments</param>
-        public override void Log(LoggingType logType, string message, System.Exception ex, params object[] args)
+        public override void Log(MethodContext context, LoggingType logType, string message, System.Exception ex, params object[] args)
         {
             if(ex == null)
             {
