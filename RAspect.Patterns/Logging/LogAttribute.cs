@@ -13,7 +13,14 @@ namespace RAspect.Patterns.Logging
     public class LogAttribute : AspectBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="MethodInterceptionAspect"/> class.
+        /// Initializes a new instance of the <see cref="LogAttribute"/> class.
+        /// </summary>
+        public LogAttribute()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LogAttribute"/> class.
         /// </summary>
         /// <param name="logType">LogType</param>
         public LogAttribute(LoggingType logType = LoggingType.Debug) : base(WeaveTargetType.Methods | WeaveTargetType.Properties)
@@ -97,7 +104,7 @@ namespace RAspect.Patterns.Logging
         {
             get
             {
-                return WeaveBlockType.Wrapping;
+                return WeaveBlockType.Inline;
             }
         }
     }

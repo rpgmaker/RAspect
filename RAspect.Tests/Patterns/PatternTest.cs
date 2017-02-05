@@ -1,4 +1,5 @@
 using RAspect.Patterns.Exception;
+using RAspect.Patterns.Logging;
 using RAspect.Patterns.Threading;
 using RAspect.Tests.Patterns;
 using System;
@@ -21,6 +22,7 @@ namespace RAspect.Patterns.Tests
             ILWeaver.Weave<PatternModel>();
             ILWeaver.Weave<ImmutableObject>();
             ILWeaver.Weave<ReaderWriterObject>();
+            ILWeaver.Weave<LoggingObject>();
             //ILWeaver.SaveAssembly();
         }
 
@@ -115,7 +117,32 @@ namespace RAspect.Patterns.Tests
                 obj.ID = 10;
             });
         }
-        
+
+        [Fact]
+        public void WillLogMethod()
+        {
+            var backend = new FakeLoggingBackend();
+            LoggingManager.Configure(backend);
+            var obj = new LoggingObject();
+            var result = obj.AddMethod(10, 10);
+
+            Assert.Equal(20, result);
+
+            Assert.True(backend.logs.Any(x => x.Item1.Method.Name == "AddMethod"));
+        }
+
+        [Fact]
+        public void WillLogErrorMethod()
+        {
+            var backend = new FakeLoggingBackend();
+            LoggingManager.Configure(backend);
+            var obj = new LoggingObject();
+
+            Assert.Throws<DivideByZeroException>(() => obj.DivisionError());
+            
+            Assert.True(backend.logs.Any(x => x.Item4 != null && x.Item4.GetType() == typeof(DivideByZeroException)));
+        }
+
         private Task[] ExecuteOnThreads(int threads, Action action)
         {
             var tasks = new Task[threads];

@@ -69,6 +69,7 @@
   <ItemGroup>
     <Compile Include="Patterns\FrozenObject.cs" />
     <Compile Include="Patterns\ImmutableObject.cs" />
+    <Compile Include="Patterns\LoggingObject.cs" />
     <Compile Include="Patterns\PatternModel.cs" />
     <Compile Include="Patterns\PatternTest.cs" />
     <Compile Include="Patterns\ReaderWriterObject.cs" />

@@ -682,7 +682,7 @@
                 if (needAttrs)
                 {
                     il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Ldsfld, methodInfoField);
+                    il.Emit(OpCodes.Ldsfld, methodAttrField);
                     il.Emit(OpCodes.Callvirt, MethodContextAttributes.GetSetMethod());
                 }
             }
