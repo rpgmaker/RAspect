@@ -43,10 +43,11 @@ namespace RAspect.Patterns
         /// <summary>
         /// Aspect code to inject at the beginning of weaved method
         /// </summary>
+        /// <param name="typeBuilder">Type Builder</param>
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
         {
             var meth = method as MethodInfo;
             var returnType = meth.ReturnType;
@@ -58,10 +59,11 @@ namespace RAspect.Patterns
         /// <summary>
         /// Aspect code to inject at the end of weaved method
         /// </summary>
+        /// <param name="typeBuilder">Type Builder</param>
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void EndAspectBlock(MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void EndAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
         {
             if(exLocal != null)
                 il.Emit(OpCodes.Stloc, exLocal);

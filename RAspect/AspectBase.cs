@@ -67,12 +67,12 @@
         /// <summary>
         /// Gets or sets aspect code to inject at beginning of weaved method
         /// </summary>
-        internal Action<MethodBase, ParameterInfo, ILGenerator> OnBeginAspectBlock { get; set; }
+        internal Action<TypeBuilder, MethodBase, ParameterInfo, ILGenerator> OnBeginAspectBlock { get; set; }
 
         /// <summary>
         /// Gets or sets aspect code to inject at end of weaved method
         /// </summary>
-        internal Action<MethodBase, ParameterInfo, ILGenerator> OnEndAspectBlock { get; set; }
+        internal Action<TypeBuilder, MethodBase, ParameterInfo, ILGenerator> OnEndAspectBlock { get; set; }
 
 
         /// <summary>

@@ -143,6 +143,16 @@ namespace RAspect.Patterns.Tests
             Assert.True(backend.logs.Any(x => x.Item4 != null && x.Item4.GetType() == typeof(DivideByZeroException)));
         }
 
+        [Fact]
+        public void ShouldLazyLoadProperty()
+        {
+            var model = new PatternModel();
+            var expected = model.RandomInt;
+            var value = model.RandomInt;
+
+            Assert.Equal(expected, value);
+        }
+
         private Task[] ExecuteOnThreads(int threads, Action action)
         {
             var tasks = new Task[threads];

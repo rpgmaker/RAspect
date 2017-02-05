@@ -1268,7 +1268,7 @@
                     var beginBlock = aspect.OnBeginAspectBlock;
                     if (beginBlock != null)
                     {
-                        beginBlock(method, parameter, il);
+                        beginBlock(type, method, parameter, il);
                     }
                 }
 
@@ -1277,7 +1277,7 @@
                     var beginBlock = aspect.OnBeginAspectBlock;
                     if (beginBlock != null)
                     {
-                        beginBlock(method, null, il);
+                        beginBlock(type, method, null, il);
                     }
                 }
 
@@ -1290,7 +1290,7 @@
                     var endBlock = aspect.OnEndAspectBlock;
                     if (endBlock != null)
                     {
-                        endBlock(method, parameter, il);
+                        endBlock(type, method, parameter, il);
                     }
                 }
 
@@ -1299,7 +1299,7 @@
                     var endBlock = aspect.OnEndAspectBlock;
                     if (endBlock != null)
                     {
-                        endBlock(method, null, il);
+                        endBlock(type, method, null, il);
                     }
                 }
                 il.Emit(OpCodes.Ret);

@@ -14,6 +14,7 @@ namespace RAspect.Tests.Patterns
 {
     public class PatternModel
     {
+        static Random rand = new Random();
         ITestOutputHelper output = null;
         public PatternModel()
         {
@@ -42,6 +43,15 @@ namespace RAspect.Tests.Patterns
             c++;
             Thread.Sleep(1);
             count = c;
+        }
+
+        [AutoLazy]
+        public int RandomInt
+        {
+            get
+            {
+                return rand.Next(10, 10000);
+            }
         }
     }
 }
