@@ -378,7 +378,18 @@ namespace RAspect
                                 else if(dataMethod != null)
                                 {
                                     WeaveEventInvoke(il, aspects, methodContext, dataMethod, eventField);
-                                    method.Invoke(il, new object[] { instruction, data });
+                                    var successes = new List<bool>();
+                                    foreach(var aspect in aspects)
+                                    {
+                                        var invoke = aspect.OnAspectMethodCall;
+                                        if(invoke != null)
+                                        {
+                                            successes.Add(invoke(type, il, meth, dataMethod));
+                                        }
+                                    }
+
+                                    if (!successes.Any(x => x))
+                                        method.Invoke(il, new object[] { instruction, data });
                                 }
                                 else
                                     method.Invoke(il, new object[] { instruction, data });

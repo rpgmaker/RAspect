@@ -153,6 +153,23 @@ namespace RAspect.Patterns.Tests
             Assert.Equal(expected, value);
         }
 
+        [Fact]
+        public void ShouldReplaceDateTimeNow()
+        {
+            var model = new PatternModel();
+            var expected = DateTime.Parse("12/5/1985");
+            var actual = model.ReplaceDateNow();
+            var actual2 = model.ReplaceDateToday();
+
+            Assert.Equal(expected.Month, actual.Month);
+            Assert.Equal(expected.Day, actual.Day);
+            Assert.Equal(expected.Year, actual.Year);
+
+            Assert.Equal(expected.Month, actual2.Month);
+            Assert.Equal(expected.Day, actual2.Day);
+            Assert.Equal(expected.Year, actual2.Year);
+        }
+
         private Task[] ExecuteOnThreads(int threads, Action action)
         {
             var tasks = new Task[threads];

@@ -11,7 +11,7 @@ namespace RAspect.Patterns
     /// <summary>
     /// Attribute when applied to properties/methods causes result to be lazy loaded
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Assembly)]
     public class AutoLazyAttribute : AspectBase
     {
         /// <summary>

@@ -12,6 +12,28 @@ using Xunit.Abstractions;
 
 namespace RAspect.Tests.Patterns
 {
+    public class DateTimeReplacement
+    {
+        public static DateTime Now
+        {
+            get
+            {
+                return DateTime.Parse("12/5/1985");
+            }
+        }
+    }
+
+    public class DateTimeTodayReplacement
+    {
+        public static DateTime Today
+        {
+            get
+            {
+                return DateTime.Parse("12/5/1985");
+            }
+        }
+    }
+
     public class PatternModel
     {
         static Random rand = new Random();
@@ -52,6 +74,19 @@ namespace RAspect.Tests.Patterns
             {
                 return rand.Next(10, 10000);
             }
+        }
+
+        [StaticMethodReplacer(typeof(DateTimeReplacement))]
+        public DateTime ReplaceDateNow()
+        {
+            return DateTime.Now;
+        }
+
+        [StaticMethodReplacer(typeof(DateTimeReplacement))]
+        [StaticMethodReplacer(typeof(DateTimeTodayReplacement))]
+        public DateTime ReplaceDateToday()
+        {
+            return DateTime.Today;
         }
     }
 }

@@ -91,6 +91,11 @@
         internal Action<ILGenerator, MethodInfo, FieldInfo, LocalBuilder> OnAspectBlockInvokeEvent { get; set; }
 
         /// <summary>
+        /// Gets or sets aspect code to use for substitution of method calls in a given aspect code
+        /// </summary>
+        internal Func<TypeBuilder, ILGenerator, MethodBase, MethodBase, bool> OnAspectMethodCall { get; set; }
+
+        /// <summary>
         /// Method that will be called prior to execute of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
