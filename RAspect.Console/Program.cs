@@ -5,15 +5,38 @@ using RAspect.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace RAspect.ConsoleApp
 {
-    class Program
+    public class TestData : Object
+    {
+        public string Name { get; set; }
+        public string ToStringEx()
+        {
+            return "Hello world";
+        }
+        public override string ToString()
+        {
+            return base.ToString();
+        }
+    }
+    public unsafe class Program
     {
         const int COUNT = 100000;
         
         unsafe static void Main(string[] args)
         {
+            var tdMethod = typeof(TestData).GetMethod("ToString");
+            var tdsMethod = typeof(TestData).GetMethod("ToStringEx");
+
+            tdMethod.SwapWith(tdsMethod);
+
+            var tdata = new TestData();
+            var ttdatas = tdata.ToString();
+
+            return;
             ILWeaver.Weave();
             ILWeaver.SaveAssembly();
 

@@ -1,10 +1,10 @@
-﻿namespace RAspect
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-    using System.Reflection.Emit;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 
+namespace RAspect
+{
     /// <summary>
     /// Base Aspect for all aspect implementations
     /// </summary>

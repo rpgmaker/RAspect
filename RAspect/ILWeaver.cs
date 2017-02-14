@@ -1,27 +1,23 @@
-﻿namespace RAspect
-{
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Reflection.Emit;
-    using System.Runtime.Serialization;
-    using System.Diagnostics;
-    using System.Diagnostics.SymbolStore;
-    using System.Text.RegularExpressions;
-    using System.IO;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.Serialization;
+using System.Diagnostics;
+using System.Diagnostics.SymbolStore;
+using System.Text.RegularExpressions;
+using System.IO;
+using System.Runtime.CompilerServices;
 
+namespace RAspect
+{
     /// <summary>
-    /// Aspect builder for generating class with AOP functionalities
+    /// IL Weaver for weaving method/types with various functionalities
     /// </summary>
     public static class ILWeaver
     {
-        /// <summary>
-        /// DLL Extension
-        /// </summary>
-        private const string DLL_EXT = ".dll";
-
         /// <summary>
         /// Generated assembly name
         /// </summary>
@@ -33,32 +29,27 @@
         private static readonly object LockObject = new object();
 
         /// <summary>
-        /// Temporary string to tag on placeholder methods
-        /// </summary>
-        private static readonly string TempLabel = "_";
-
-        /// <summary>
         /// Binding for non public
         /// </summary>
         internal static readonly BindingFlags NonPublicBinding = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
-        /// Dictionary for keeping track of generated aspect types
+        /// Dictionary for keeping track of generated weaved types
         /// </summary>
         private static readonly ConcurrentDictionary<string, Type> Types = new ConcurrentDictionary<string, Type>();
 
         /// <summary>
-        /// Dictionary for keeping track of aspect type analysis
+        /// Dictionary for keeping track of cil analysis
         /// </summary>
         private static readonly ConcurrentDictionary<Type, ILAnalysis> AspectAnalysises = new ConcurrentDictionary<Type, ILAnalysis>();
 
         /// <summary>
-        /// Dictionary for keeping track of aspect fields for enter/exit/error/etc
+        /// Dictionary for keeping track of fields for enter/exit/error/etc
         /// </summary>
         internal static readonly ConcurrentDictionary<string, Dictionary<string, FieldBuilder>> TypeAspects = new ConcurrentDictionary<string, Dictionary<string, FieldBuilder>>();
 
         /// <summary>
-        /// Dictionary for keeping track of type aspect flag
+        /// Dictionary for keeping track of weaved type flag
         /// </summary>
         private static readonly ConcurrentDictionary<Type, bool> TypeAspectFlags = new ConcurrentDictionary<Type, bool>();
 
@@ -149,7 +140,7 @@
         /// <summary>
         /// Constructor info for MethodContext ArgumentInfo
         /// </summary>
-        private static ConstructorInfo ArgumentMethodArgumentCtor = typeof(MethodParameterContext).GetConstructor(new[] { typeof(string), typeof(bool) });
+        private static ConstructorInfo MethodParameterContextCtor = typeof(MethodParameterContext).GetConstructor(new[] { typeof(string), typeof(bool) });
 
         /// <summary>
         /// AssemblyBuilder for aspect types
@@ -173,21 +164,16 @@
         {
             var debug = false;
             asmBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName(ASM_NAME) { Version = new Version(1, 0, 0, 0) }, AssemblyBuilderAccess.RunAndSave);
-            asmBuilder.SetCustomAttribute(new CustomAttributeBuilder(typeof(RAspectGeneratedAttribute).GetConstructor(Type.EmptyTypes), new object[] { }));
+            asmBuilder.SetCustomAttribute(new CustomAttributeBuilder(typeof(CompilerGeneratedAttribute).GetConstructor(Type.EmptyTypes), new object[] { }));
 #if DEBUG
             var debugCtor = typeof(DebuggableAttribute).GetConstructor(new Type[] { typeof(DebuggableAttribute.DebuggingModes) });
-            var builder = new CustomAttributeBuilder(debugCtor, new object[] { DebuggableAttribute.DebuggingModes.DisableOptimizations | DebuggableAttribute.DebuggingModes.Default });
-            asmBuilder.SetCustomAttribute(builder);
+            asmBuilder.SetCustomAttribute(new CustomAttributeBuilder(debugCtor, new object[] { DebuggableAttribute.DebuggingModes.Default |
+                DebuggableAttribute.DebuggingModes.DisableOptimizations }));
             debug = true;
 #endif
-            var filename = string.Concat(ASM_NAME, DLL_EXT);
+            var filename = string.Concat(ASM_NAME, ".dll");
             moduleBuilder = asmBuilder.DefineDynamicModule(filename, filename, debug);
         }
-
-        /// <summary>
-        /// Filter function to apply to assemblies been scanned for aspect
-        /// </summary>
-        public static Func<Assembly, bool> AssemblyFilter { private get; set; }
 
         /// <summary>
         /// Rewrite weaved methods for given generic type
@@ -277,7 +263,7 @@
                 try
                 {
                     var asmName = asm.GetName().Name;
-                    if (asmName.StartsWith("System") || asmName.StartsWith("Microsoft") || asmName.StartsWith("mscorlib") || !ShouldScanForAspect(asm))
+                    if (asmName.StartsWith("System") || asmName.StartsWith("Microsoft") || asmName.StartsWith("mscorlib"))
                     {
                         continue;
                     }
@@ -329,7 +315,7 @@
         /// <param name="fileName">Optional Filename</param>
         public static void SaveAssembly()
         {
-            var asmFileName = string.Concat(asmBuilder.GetName().Name, DLL_EXT);
+            var asmFileName = string.Concat(asmBuilder.GetName().Name, ".dll");
             var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, asmFileName);
 
             try
@@ -342,21 +328,6 @@
             catch { }
 
             asmBuilder.Save(asmFileName);
-        }
-
-        /// <summary>
-        /// Filter for determining if assembly is scanned for aspect
-        /// </summary>
-        /// <param name="asm">asm</param>
-        /// <returns>Bool</returns>
-        private static bool ShouldScanForAspect(Assembly asm)
-        {
-            if (AssemblyFilter != null)
-            {
-                return AssemblyFilter(asm);
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -440,7 +411,7 @@
         }
 
         /// <summary>
-        /// Get cached aspect information regarding entry/exit/exception
+        /// Get cached aspect information (for improvement of generated code) regarding weaved methods
         /// </summary>
         /// <param name="aspectType">Aspect Type</param>
         /// <returns>ILAnalysis</returns>
@@ -629,7 +600,7 @@
                 sil.Emit(OpCodes.Ldstr, parameter.Name);
 
                 sil.Emit(OpCodes.Ldc_I4, parameter.ParameterType.IsByRef ? 1 : 0);
-                sil.Emit(OpCodes.Newobj, ArgumentMethodArgumentCtor);
+                sil.Emit(OpCodes.Newobj, MethodParameterContextCtor);
                 sil.Emit(OpCodes.Stelem_Ref);
 
                 il.Emit(OpCodes.Ldloc, argumentValues);
@@ -725,10 +696,8 @@
 
             var clonedMethod = GenerateTempMethod(type, method, method.Attributes, method.ReturnType, methodParameters, sil, aspectAttributes.Union(fieldAspects).ToList(), parameterAspects, methodContext);
 
-            //Call Cloned Original method
             InvokeClonedMethod(il, local, clonedMethod, isStatic, parameterOffset, parameters);
 
-            //Store returned value if exists
             if (local != null)
             {
                 if (returnUsed && methodContext != null)
@@ -778,7 +747,6 @@
                     il.Emit(OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
                     il.Emit(OpCodes.Brfalse, aspectNoReturnLabel);
 
-                    //Return value is set. Update local with return value
                     il.Emit(OpCodes.Ldloc, methodContext);
                     il.Emit(OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
                     if (localType.IsValueType)
@@ -861,7 +829,6 @@
 
                 il.MarkLabel(continueLabel);
 
-                // Default value when continue is false
                 if (local != null)
                 {
                     var localType = local.LocalType;
@@ -1233,7 +1200,7 @@
         /// <returns>MethodBuilder</returns>
         private static MethodBuilder GenerateTempMethod(TypeBuilder type, MethodInfo method, MethodAttributes methAttr, Type methodReturnType, Type[] methodParameters, ILGenerator sil, List<AspectBase> aspects, List<AspectBase> parameterAspects, LocalBuilder methodContext)
         {
-            var meth = type.DefineMethod(string.Concat(method.Name, TempLabel), methAttr, method.CallingConvention, methodReturnType, methodParameters);
+            var meth = type.DefineMethod(string.Concat(method.Name, "_"), methAttr, method.CallingConvention, methodReturnType, methodParameters);
             var parameters = method.GetParameters();
             MakeMethodGenericIfNeeded(method, meth);
 
@@ -1323,7 +1290,7 @@
         {
             MethodInfo newMethod = null;
             var itemParameters = item.GetParameters();
-            var itemName = item.Name + (useTemp ? TempLabel : string.Empty);
+            var itemName = item.Name + (useTemp ? "_" : string.Empty);
             if (item.IsGenericMethod)
             {
                 newMethod = returnType.GetMethods(NonPublicBinding).FirstOrDefault(x => x.Name == itemName &&
@@ -1344,35 +1311,35 @@
         /// <summary>
         /// Add Generic properties to current method builder if needed
         /// </summary>
-        /// <param name="method">Source method</param>
-        /// <param name="meth">Destination method builder</param>
+        /// <param name="method">Method</param>
+        /// <param name="meth">MethodBuilder</param>
         private static void MakeMethodGenericIfNeeded(MethodInfo method, MethodBuilder meth)
         {
-            if (method.IsGenericMethod)
+            if (!method.IsGenericMethod)
+                return;
+            
+            var genericParameters = method.GetGenericArguments();
+            var generics = meth.DefineGenericParameters(genericParameters.Select(x => x.Name).ToArray());
+
+            for (var i = 0; i < generics.Length; i++)
             {
-                var genericParameters = method.GetGenericArguments();
-                var generics = meth.DefineGenericParameters(genericParameters.Select(x => x.Name).ToArray());
+                generics[i].SetGenericParameterAttributes(genericParameters[i].GenericParameterAttributes);
 
-                for (var i = 0; i < generics.Length; i++)
+                var constraints = genericParameters[i].GetGenericParameterConstraints();
+                var interfaces = new List<Type>(constraints.Length);
+                foreach (var constraint in constraints)
                 {
-                    generics[i].SetGenericParameterAttributes(genericParameters[i].GenericParameterAttributes);
-
-                    var constraints = genericParameters[i].GetGenericParameterConstraints();
-                    var interfaces = new List<Type>(constraints.Length);
-                    foreach (var constraint in constraints)
+                    if (constraint.IsClass)
                     {
-                        if (constraint.IsClass)
-                        {
-                            generics[i].SetBaseTypeConstraint(constraint);
-                        }
-                        else
-                        {
-                            interfaces.Add(constraint);
-                        }
+                        generics[i].SetBaseTypeConstraint(constraint);
                     }
-
-                    generics[i].SetInterfaceConstraints(interfaces.ToArray());
+                    else
+                    {
+                        interfaces.Add(constraint);
+                    }
                 }
+
+                generics[i].SetInterfaceConstraints(interfaces.ToArray());
             }
         }
     }

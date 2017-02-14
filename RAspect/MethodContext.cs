@@ -1,12 +1,12 @@
-﻿namespace RAspect
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
+namespace RAspect
+{
     /// <summary>
-    /// Encapsulate method information capture in AOP framework.
+    /// Encapsulate method information.
     /// </summary>
     public sealed class MethodContext
     {
@@ -77,7 +77,7 @@
         public object Instance { get; set; }
 
         /// <summary>
-        /// Gets or sets token to be used by aspect for passing context between various aspect entry points
+        /// Gets or sets token to be used by weaved method for passing context between various entry points
         /// </summary>
         public object Token { get; set; }
 
@@ -102,19 +102,6 @@
         public void SetArguments(MethodParameterContext[] arguments)
         {
             this.arguments = arguments;
-        }
-
-        /// <summary>
-        /// Get argument value by name from weaved method arguments
-        /// </summary>
-        /// <typeparam name="T">Generic Type</typeparam>
-        /// <param name="name">Argument name</param>
-        /// <param name="default">Default value to use in place of missing value</param>
-        /// <returns><typeparamref name="T"/></returns>
-        public T GetArgument<T>(string name, T @default = default(T))
-        {
-            var argument = this.Arguments.FirstOrDefault(x => x.Name.Equals(name));
-            return argument != null ? (T)argument.Value : @default;
         }
     }
 }

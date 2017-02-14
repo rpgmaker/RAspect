@@ -1,15 +1,14 @@
-﻿namespace RAspect
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using System.Reflection.Emit;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 
-    
+namespace RAspect
+{
     /// <summary>
-    /// MSIL Reader
+    /// CIL Reader
     /// </summary>
     public class ILReader
     {
@@ -109,7 +108,7 @@
         }
 
         /// <summary>
-        /// Gets current MSIL instruction
+        /// Gets current CIL instruction
         /// </summary>
         public ILInstruction Current
         {
@@ -120,7 +119,7 @@
         }
 
         /// <summary>
-        /// Stream MSIL instructions
+        /// Stream CIL instructions
         /// </summary>
         /// <returns>Bool</returns>
         public bool Read()

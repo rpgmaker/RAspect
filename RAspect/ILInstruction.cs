@@ -1,7 +1,7 @@
-﻿namespace RAspect
-{
-    using System.Reflection.Emit;
+﻿using System.Reflection.Emit;
 
+namespace RAspect
+{    
     /// <summary>
     /// IL instruction container
     /// </summary>

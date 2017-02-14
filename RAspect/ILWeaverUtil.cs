@@ -63,11 +63,6 @@ namespace RAspect
         private static OpCode[] LoadLocalOpCodes = new OpCode[] { OpCodes.Ldloc_0, OpCodes.Ldloc_1, OpCodes.Ldloc_2, OpCodes.Ldloc_3 };
 
         /// <summary>
-        /// Net Version 2 Above
-        /// </summary>
-        public static readonly Version Net20SP2 = new Version(2, 0, 50727, 3053);
-
-        /// <summary>
         /// Get MSIL Label in preparation of MSIL Copying
         /// </summary>
         /// <param name="meth">Method</param>
@@ -173,7 +168,7 @@ namespace RAspect
                     continue;
                 }
 
-                var offsetLabel = labels.FirstOrDefault(x => x.Value.Index == currentIndex);//labels.FirstOrDefault(x => x.Value.Index >= current.Index - 1 && x.Value.Index <= current.Index && !x.Value.Marked);
+                var offsetLabel = labels.FirstOrDefault(x => x.Value.Index == currentIndex);
 
                 var @try = exceptions.FirstOrDefault(x => x.TryOffset == currentIndex && (x.Flags == ExceptionHandlingClauseOptions.Clause || x.Flags == ExceptionHandlingClauseOptions.Finally));
 
@@ -224,7 +219,7 @@ namespace RAspect
                     }
                     else
                     {
-                        //Resolve emit method based on data type
+                        //Resolve emit method
                         var data = current.Data;
                         var dataType = data != null ? data.GetType() : null;
                         var method = dataType != null ? typeof(ILGenerator).GetMethod("Emit", new Type[] { typeof(OpCode), dataType }) :
@@ -410,7 +405,7 @@ namespace RAspect
                     if (!meth.IsStatic && instructionValue == OpCodes.Ldarg_0.Value)
                     {
                         il.Emit(OpCodes.Ldarg_0);
-                        il.Emit(OpCodes.Castclass, meth.DeclaringType);//Might Remove
+                        il.Emit(OpCodes.Castclass, meth.DeclaringType);
                     }
                     else if (StoreLocalOpCodes.Contains(instruction))
                     {
@@ -432,7 +427,7 @@ namespace RAspect
                                 if (!isFieldStatic)
                                 {
                                     il.Emit(OpCodes.Ldarg_0);
-                                    il.Emit(OpCodes.Castclass, meth.DeclaringType);//Might Remove
+                                    il.Emit(OpCodes.Castclass, meth.DeclaringType);
                                 }
 
                                 il.Emit(OpCodes.Ldloc, adrLocal);
@@ -524,14 +519,12 @@ namespace RAspect
         internal static ISymbolDocumentWriter GetSymbolDocumentWriter(string pdbSource, ModuleBuilder moduleBuilder)
         {
             ISymbolDocumentWriter writer = null;
-
+            if (moduleBuilder == null)
+                return writer;
 #if DEBUG
-            if (moduleBuilder != null)
+            if (!string.IsNullOrWhiteSpace(pdbSource) && !SymbolDocuments.TryGetValue(pdbSource, out writer))
             {
-                if(!string.IsNullOrWhiteSpace(pdbSource) && !SymbolDocuments.TryGetValue(pdbSource, out writer))
-                {
-                    writer = SymbolDocuments[pdbSource] = moduleBuilder.DefineDocument(pdbSource, SymLanguageType.CSharp, SymLanguageVendor.Microsoft, SymDocumentType.Text);
-                }
+                writer = SymbolDocuments[pdbSource] = moduleBuilder.DefineDocument(pdbSource, SymLanguageType.CSharp, SymLanguageVendor.Microsoft, SymDocumentType.Text);
             }
 #endif
             return writer;
@@ -1039,7 +1032,6 @@ namespace RAspect
                 {
                     il.Emit(OpCodes.Isinst, overrideDeclaringType);
                     il.Emit(OpCodes.Ldfld, field);
-                    //il.Emit(OpCodes.Isinst, declaringType);
                 }
             }
 
@@ -1153,7 +1145,7 @@ namespace RAspect
         /// <summary>
         /// Get index value for given msil instruction
         /// </summary>
-        /// <param name="current">MSIL Instruction</param>
+        /// <param name="current">Instruction</param>
         /// <returns>Int</returns>
         private static int GetInstructionIndex(ILInstruction current)
         {
@@ -1163,49 +1155,26 @@ namespace RAspect
         }
 
         /// <summary>
-        /// Swap given method with new method
+        /// Swap method with new method
         /// </summary>
-        /// <param name="meth"></param>
-        /// <param name="newMethod"></param>
+        /// <param name="meth">Old Method</param>
+        /// <param name="newMethod">New Method</param>
         public static void SwapWith(this MethodBase meth, MethodBase newMethod)
         {
             ReplaceMethod(newMethod, meth);
         }
 
         /// <summary>
-        /// Swap given field with new field
-        /// </summary>
-        /// <param name="field"></param>
-        /// <param name="newField"></param>
-        public static void SwapWith(this FieldInfo field, FieldInfo newField)
-        {
-            var srcAdr = newField.FieldHandle.Value;
-            var destAdr = GetMethodAddress(field.FieldHandle.Value);
-            ReplaceDestAddress(srcAdr, destAdr);
-        }
-
-        /// <summary>
-        /// Replaces the method.
+        /// Replaces the source method with dest method
         /// </summary>
         /// <param name="source">Source Method</param>
         /// <param name="dest">Destination Method</param>
         private static void ReplaceMethod(MethodBase source, MethodBase dest)
         {
-            ReplaceMethod(GetMethodAddress(source), dest);
-        }
-
-        /// <summary>
-        /// Replaces the method.
-        /// </summary>
-        /// <param name="srcAdr">Source method address</param>
-        /// <param name="dest">Destination method</param>
-        private static void ReplaceMethod(IntPtr srcAdr, MethodBase dest)
-        {
             IntPtr destAdr = GetMethodAddressRef(dest);
 
-            ReplaceDestAddress(srcAdr, destAdr);
+            ReplaceDestAddress(GetMethodAddress(source), destAdr);
         }
-
 
         /// <summary>
         /// Point destination pointer to source pointer
@@ -1234,188 +1203,100 @@ namespace RAspect
         /// <returns></returns>
         private static IntPtr GetMethodAddressRef(MethodBase srcMethod)
         {
-            if ((srcMethod is DynamicMethod))
-            {
-                return GetDynamicMethodAddress(srcMethod);
-            }
-
             RuntimeHelpers.PrepareMethod(srcMethod.MethodHandle);
 
             IntPtr ptr = srcMethod.MethodHandle.GetFunctionPointer();
 
-            // If 3.5 sp1 or greater than we have a different layout in memory.
-            if (IsNet20Sp2OrGreater())
-            {
-                IntPtr addrRef = GetMethodAddress20SP2(srcMethod);
+            IntPtr addrRef = GetMethodAddressFor(srcMethod);
 
-                if (IsAddressValueMatch(addrRef, ptr))
+            if (IsEqual(addrRef, ptr))
+            {
+                return addrRef;
+            }
+
+            addrRef = IntPtr.Zero;
+
+            {
+                var sourceTypeHandle = srcMethod.DeclaringType.TypeHandle.Value;
+                UInt64* methodDesc = (UInt64*)(srcMethod.MethodHandle.Value.ToPointer());
+                int index = (int)(((*methodDesc) >> 32) & 0xFF);
+                void* vptr = sourceTypeHandle.ToPointer();
+
+                if (IntPtr.Size == 8)
                 {
-                    return addrRef;
+                    ulong* start = (ulong*)vptr;
+                    start += 8;
+                    start = (ulong*)*start;
+                    ulong* address = start + index;
+                    addrRef = new IntPtr(address);
+                }
+                else
+                {
+                    uint* start = (uint*)vptr;
+                    start += 10;
+                    start = (uint*)*start;
+                    uint* address = start + index;
+                    addrRef = new IntPtr(address);
                 }
 
-                addrRef = IntPtr.Zero;
-                
+                if (IsEqual(addrRef, ptr))
                 {
-                    UInt64* methodDesc = (UInt64*)(srcMethod.MethodHandle.Value.ToPointer());
-                    int index = (int)(((*methodDesc) >> 32) & 0xFF);
-
-                    if (IntPtr.Size == 8)
-                    {
-                        ulong* start = (ulong*)srcMethod.DeclaringType.TypeHandle.Value.ToPointer();
-                        start += 8;
-                        start = (ulong*)*start;
-                        ulong* address = start + index;
-                        addrRef = new IntPtr(address);
-                    }
-                    else
-                    {
-                        uint* start = (uint*)srcMethod.DeclaringType.TypeHandle.Value.ToPointer();
-                        start += 10;
-                        start = (uint*)*start;
-                        uint* address = start + index;
-                        addrRef = new IntPtr(address);
-                    }
-
-                    if (IsAddressValueMatch(addrRef, ptr))
-                    {
-                        return addrRef;
-                    }
+                    return addrRef;
                 }
             }
 
             {
-                const int SKIP = 10;
-
-                UInt64* location = (UInt64*)(srcMethod.MethodHandle.Value.ToPointer());
-                int index = (int)(((*location) >> 32) & 0xFF);
+                var sourceTypeHandle = srcMethod.DeclaringType.TypeHandle.Value;
+                UInt64* methodDesc = (UInt64*)(srcMethod.MethodHandle.Value.ToPointer());
+                int index = (int)(((*methodDesc) >> 32) & 0xFF);
+                void* vptr = sourceTypeHandle.ToPointer();
 
                 if (IntPtr.Size == 8)
                 {
-                    ulong* start = (ulong*)srcMethod.DeclaringType.TypeHandle.Value.ToPointer();
-                    ulong* address = start + index + SKIP;
+                    ulong* start = (ulong*)vptr;
+                    ulong* address = start + index + 10;
                     return new IntPtr(address);
                 }
                 else
                 {
-                    uint* start = (uint*)srcMethod.DeclaringType.TypeHandle.Value.ToPointer();
-                    uint* address = start + index + SKIP;
+                    uint* start = (uint*)vptr;
+                    uint* address = start + index + 10;
                     return new IntPtr(address);
                 }
             }
         }
 
         /// <summary>
-        /// Determine if given address are equal
+        /// Determine if addresses are the same
         /// </summary>
         /// <param name="address">Address</param>
         /// <param name="value">Value</param>
-        /// <returns></returns>
-        private static bool IsAddressValueMatch(IntPtr address, IntPtr value)
+        /// <returns>Boolean</returns>
+        private static bool IsEqual(IntPtr address, IntPtr value)
         {
             IntPtr realValue = *(IntPtr*)address;
             return realValue == value;
         }
 
         /// <summary>
-        /// Gets the address of the method stub
+        /// Gets the address of given method
         /// </summary>
-        /// <param name="method">Method.</param>
-        /// <returns></returns>
+        /// <param name="method">Method</param>
+        /// <returns>IntPtr</returns>
         private static IntPtr GetMethodAddress(MethodBase method)
         {
-            if (method is DynamicMethod)
-            {
-                return GetDynamicMethodAddress(method);
-            }
-
             RuntimeHelpers.PrepareMethod(method.MethodHandle);
             return method.MethodHandle.GetFunctionPointer();
         }
-
+        
         /// <summary>
-        /// Get the address of dynamic method
+        /// Get method address for giving method
         /// </summary>
-        /// <param name="method"></param>
+        /// <param name="method">Method</param>
         /// <returns>IntPtr</returns>
-        private static IntPtr GetDynamicMethodAddress(MethodBase method)
+        private static IntPtr GetMethodAddressFor(MethodBase method)
         {
-            RuntimeMethodHandle handle = GetDynamicMethodRuntimeHandle(method);
-            byte* ptr = (byte*)handle.Value.ToPointer();
-
-            if (IsNet20Sp2OrGreater())
-            {
-                RuntimeHelpers.PrepareMethod(handle);
-                return handle.GetFunctionPointer();
-            }
-            else
-            {
-                if (IntPtr.Size == 8)
-                {
-                    ulong* address = (ulong*)ptr;
-                    address += 6;
-                    return new IntPtr(address);
-                }
-                else
-                {
-                    uint* address = (uint*)ptr;
-                    address += 6;
-                    return new IntPtr(address);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get Dynamic Method RuntimeMethod Handle
-        /// </summary>
-        /// <param name="method"></param>
-        /// <returns>RuntimeMethodHandle</returns>
-        private static RuntimeMethodHandle GetDynamicMethodRuntimeHandle(MethodBase method)
-        {
-            RuntimeMethodHandle handle;
-
-            if (Environment.Version.Major == 4)
-            {
-                MethodInfo getMethodDescriptorInfo = typeof(DynamicMethod).GetMethod("GetMethodDescriptor",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-                handle = (RuntimeMethodHandle)getMethodDescriptorInfo.Invoke(method, null);
-            }
-            else
-            {
-                FieldInfo fieldInfo = typeof(DynamicMethod).GetField("m_method", BindingFlags.NonPublic | BindingFlags.Instance);
-                handle = ((RuntimeMethodHandle)fieldInfo.GetValue(method));
-            }
-                
-            return handle;
-        }
-
-        /// <summary>
-        /// Get method address for .Net 2.0 SP2
-        /// </summary>
-        /// <param name="method"></param>
-        /// <returns></returns>
-        private static IntPtr GetMethodAddress20SP2(MethodBase method)
-        {
-            return GetMethodAddress(method.MethodHandle.Value);
-        }
-
-        private static IntPtr GetMethodAddress(IntPtr handle)
-        {
-            return new IntPtr(((int*)handle.ToPointer() + 2));
-        }
-
-        /// <summary>
-        /// Determine if .Net Framework is greater than .Net 2.0
-        /// </summary>
-        /// <returns>Bool</returns>
-        private static bool IsNet20Sp2OrGreater()
-        {
-            if (Environment.Version.Major >= 4)
-            {
-                return true;
-            }
-
-            return Environment.Version.Major == Net20SP2.Major &&
-                Environment.Version.MinorRevision >= Net20SP2.MinorRevision;
+            return new IntPtr(((int*)method.MethodHandle.Value.ToPointer() + 2));
         }
     }
 }

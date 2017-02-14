@@ -170,6 +170,15 @@ namespace RAspect.Patterns.Tests
             Assert.Equal(expected.Year, actual2.Year);
         }
 
+        [Fact]
+        public void ShouldNotFailWithStackOverflow()
+        {
+            var model = new PatternModel();
+            var thread = new System.Threading.Thread(() => { model.Fib(1000000000); }, 1000);
+            thread.Start();
+            thread.Join();
+        }
+
         private Task[] ExecuteOnThreads(int threads, Action action)
         {
             var tasks = new Task[threads];

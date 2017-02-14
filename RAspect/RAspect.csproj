@@ -64,7 +64,6 @@
   <ItemGroup>
     <Compile Include="ILAnalysis.cs" />
     <Compile Include="ILInstruction.cs" />
-    <Compile Include="RAspectGeneratedAttribute.cs" />
     <Compile Include="MethodParameterContext.cs" />
     <Compile Include="MethodContext.cs" />
     <Compile Include="ILWeaver.cs" />
