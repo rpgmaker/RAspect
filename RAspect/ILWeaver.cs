@@ -44,6 +44,11 @@ namespace RAspect
         private static readonly ConcurrentDictionary<Type, ILAnalysis> AspectAnalysises = new ConcurrentDictionary<Type, ILAnalysis>();
 
         /// <summary>
+        /// Dictionary for keeping track of defined methods
+        /// </summary>
+        internal static readonly ConcurrentDictionary<string, MethodBuilder> DefinedMethods = new ConcurrentDictionary<string, MethodBuilder>();
+
+        /// <summary>
         /// Dictionary for keeping track of fields for enter/exit/error/etc
         /// </summary>
         internal static readonly ConcurrentDictionary<string, Dictionary<string, FieldBuilder>> TypeAspects = new ConcurrentDictionary<string, Dictionary<string, FieldBuilder>>();
@@ -694,7 +699,7 @@ namespace RAspect
             if (needTryCatch)
                 il.BeginExceptionBlock();
 
-            var clonedMethod = GenerateTempMethod(type, method, method.Attributes, method.ReturnType, methodParameters, sil, aspectAttributes.Union(fieldAspects).ToList(), parameterAspects, methodContext);
+            var clonedMethod = GenerateReplacementMethod(type, method, method.Attributes, method.ReturnType, methodParameters, sil, aspectAttributes.Union(fieldAspects).ToList(), parameterAspects, methodContext);
 
             InvokeClonedMethod(il, local, clonedMethod, isStatic, parameterOffset, parameters);
 
@@ -1186,7 +1191,44 @@ namespace RAspect
         }
 
         /// <summary>
-        /// Generate Temp Method for enabling debug mode
+        /// Get method already defined for a given type builder
+        /// </summary>
+        /// <param name="typeBuilder">TypeBuilder</param>
+        /// <param name="name">Name</param>
+        /// <param name="returnType">ReturnType</param>
+        /// <param name="parameterTypes">ParameterTypes</param>
+        /// <returns></returns>
+        internal static MethodBuilder GetMethodEx(this TypeBuilder typeBuilder, string name, Type returnType, Type[] parameterTypes)
+        {
+            var key = string.Format("{0}_{1}_{2}", name, returnType.FullName, string.Join(",", parameterTypes.Select(x => x.FullName)));
+            MethodBuilder method;
+
+            if(DefinedMethods.TryGetValue(key, out method))
+            {
+                return method;
+            }
+
+            return method;
+        }
+
+        /// <summary>
+        /// Define method and track defined method
+        /// </summary>
+        /// <param name="typeBuilder">TypeBuilder</param>
+        /// <param name="name">Name</param>
+        /// <param name="attributes">Attributes</param>
+        /// <param name="callingConvention">CallingConvention</param>
+        /// <param name="returnType">ReturnType</param>
+        /// <param name="parameterTypes">ParameterTypes</param>
+        /// <returns></returns>
+        internal static MethodBuilder DefineMethodEx(this TypeBuilder typeBuilder, string name, MethodAttributes attributes, CallingConventions callingConvention, Type returnType, Type[] parameterTypes)
+        {
+            var key = string.Format("{0}_{1}_{2}", name, returnType.FullName, string.Join(",", parameterTypes.Select(x => x.FullName)));
+            return DefinedMethods[key] = typeBuilder.DefineMethod(name, attributes, callingConvention, returnType, parameterTypes);
+        }
+
+        /// <summary>
+        /// Generate Replacement Method for debug mode
         /// </summary>
         /// <param name="type">TypeBuilder</param>
         /// <param name="method">MethodInfo</param>
@@ -1198,9 +1240,9 @@ namespace RAspect
         /// <param name="parameterAspects">Parameters Aspects</param>
         /// <param name="methodContext">Method Context</param>
         /// <returns>MethodBuilder</returns>
-        private static MethodBuilder GenerateTempMethod(TypeBuilder type, MethodInfo method, MethodAttributes methAttr, Type methodReturnType, Type[] methodParameters, ILGenerator sil, List<AspectBase> aspects, List<AspectBase> parameterAspects, LocalBuilder methodContext)
+        private static MethodBuilder GenerateReplacementMethod(TypeBuilder type, MethodInfo method, MethodAttributes methAttr, Type methodReturnType, Type[] methodParameters, ILGenerator sil, List<AspectBase> aspects, List<AspectBase> parameterAspects, LocalBuilder methodContext)
         {
-            var meth = type.DefineMethod(string.Concat(method.Name, "_"), methAttr, method.CallingConvention, methodReturnType, methodParameters);
+            var meth = type.DefineMethodEx(string.Concat(method.Name, "_"), methAttr, method.CallingConvention, methodReturnType, methodParameters);
             var parameters = method.GetParameters();
             MakeMethodGenericIfNeeded(method, meth);
 

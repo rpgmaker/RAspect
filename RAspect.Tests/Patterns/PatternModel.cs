@@ -91,12 +91,12 @@ namespace RAspect.Tests.Patterns
         [Tail]
         public int Fib(int i, int acc = 0)
         {
-            return 0;
-            //if (i == 0)
-            //{
-            //    return acc;
-            //}
-            //return Fib(i - 1, acc + i);
+            if (i == 0)
+            {
+                return acc;
+            }
+
+            return Fib(i - 1, acc + i);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace RAspect.ConsoleApp
         public string Name { get; set; }
         public string ToStringEx()
         {
-            return "Hello world";
+            return "Hello world String";
         }
         public override string ToString()
         {
@@ -35,6 +35,7 @@ namespace RAspect.ConsoleApp
 
             var tdata = new TestData();
             var ttdatas = tdata.ToString();
+            Console.WriteLine(ttdatas);
 
             return;
             ILWeaver.Weave();

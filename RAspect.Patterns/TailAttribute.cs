@@ -45,14 +45,18 @@ namespace RAspect.Patterns
         internal bool AspectMethodCall(TypeBuilder typeBuilder, ILGenerator il, MethodBase method, MethodBase replaceMethod)
         {
             var isRecursive = method == replaceMethod;
-            var declareType = replaceMethod.DeclaringType;
+            var declaringType = replaceMethod.DeclaringType;
+            var methodCall = replaceMethod as MethodInfo;
             if (isRecursive)
             {
+                methodCall = typeBuilder.GetMethodEx(methodCall.Name + "_", methodCall.ReturnType, methodCall.GetParameters().Select(x => x.ParameterType).ToArray());
                 il.Emit(OpCodes.Tailcall);
             }
 
-            il.Emit(declareType.IsValueType || replaceMethod.IsStatic ? OpCodes.Call : OpCodes.Callvirt, 
-                replaceMethod as MethodInfo);
+            il.Emit(declaringType.IsValueType || replaceMethod.IsStatic || methodCall.ReturnType.IsValueType ? OpCodes.Call : OpCodes.Callvirt, 
+                methodCall);
+
+            il.Emit(OpCodes.Ret);
 
             return true;
         }

@@ -168,7 +168,7 @@ namespace RAspect
                     continue;
                 }
 
-                var offsetLabel = labels.FirstOrDefault(x => x.Value.Index == currentIndex);
+                var offsetLabels = labels.Where(x => x.Value.Index == currentIndex);
 
                 var @try = exceptions.FirstOrDefault(x => x.TryOffset == currentIndex && (x.Flags == ExceptionHandlingClauseOptions.Clause || x.Flags == ExceptionHandlingClauseOptions.Finally));
 
@@ -199,10 +199,13 @@ namespace RAspect
                     il.EndExceptionBlock();
                 }
 
-                if (offsetLabel.Value != null)
+                foreach (var offsetLabel in offsetLabels)
                 {
-                    il.MarkLabel(offsetLabel.Value.Label);
-                    offsetLabel.Value.Marked = true;
+                    if (offsetLabel.Value != null)
+                    {
+                        il.MarkLabel(offsetLabel.Value.Label);
+                        offsetLabel.Value.Marked = true;
+                    }
                 }
 
                 if (current.Data != null)

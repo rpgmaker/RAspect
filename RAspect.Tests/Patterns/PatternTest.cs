@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace RAspect.Patterns.Tests
+namespace RAspect.Tests.Patterns
 {
     /// <summary>
     /// Patterns Test
@@ -174,9 +174,8 @@ namespace RAspect.Patterns.Tests
         public void ShouldNotFailWithStackOverflow()
         {
             var model = new PatternModel();
-            var thread = new System.Threading.Thread(() => { model.Fib(1000000000); }, 1000);
-            thread.Start();
-            thread.Join();
+            var result = Math.Abs(model.Fib(10000000));
+            Assert.True(result > 0);
         }
 
         private Task[] ExecuteOnThreads(int threads, Action action)
