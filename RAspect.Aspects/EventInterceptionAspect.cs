@@ -93,7 +93,7 @@ namespace RAspect.Aspects
         /// <param name="method">Method</param>
         /// <param name="field">Field</param>
         /// <param name="methodContext">Method Context</param>
-        private void AspectBlockInvokeEvent(ILGenerator il, MethodInfo method, FieldInfo field, LocalBuilder methodContext)
+        private void AspectBlockInvokeEvent(ILGenerator il, MethodBase method, FieldInfo field, LocalBuilder methodContext)
         {
             var isStatic = method.IsStatic;
             var eventContext = il.DeclareLocal(typeof(EventContext));

@@ -138,6 +138,11 @@ namespace RAspect
         private static readonly PropertyInfo MethodContextInstance = MethodContextType.GetProperty("Instance");
 
         /// <summary>
+        /// Default constructor for object class
+        /// </summary>
+        private static readonly ConstructorInfo ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes);
+
+        /// <summary>
         /// Collection of cached aspect instances
         /// </summary>
         private static readonly ConcurrentDictionary<Type, AspectBase> Aspects = new ConcurrentDictionary<Type, AspectBase>();
@@ -538,7 +543,7 @@ namespace RAspect
         /// <param name="parameterAspects">Parameters Aspect</param>
         /// <param name="methodParameters">Method Parameters</param>
         /// <param name="fieldAspects">Field Aspects</param>
-        private static void WeaveMethod(TypeBuilder type, MethodInfo method, List<AspectBase> aspectAttributes, ILGenerator il, LocalBuilder local, FieldBuilder methodInfoField, FieldBuilder methodAttrField, ILGenerator sil, List<Type> aspectTypes, List<AspectBase> parameterAspects, Type[] methodParameters, List<AspectBase> fieldAspects)
+        private static void WeaveMethod(TypeBuilder type, MethodBase method, List<AspectBase> aspectAttributes, ILGenerator il, LocalBuilder local, FieldBuilder methodInfoField, FieldBuilder methodAttrField, ILGenerator sil, List<Type> aspectTypes, List<AspectBase> parameterAspects, Type[] methodParameters, List<AspectBase> fieldAspects)
         {
             var argumentsField = type.DefineField(string.Concat("_<args>_", method.Name, counter++), typeof(MethodParameterContext[]), FieldAttributes.Static | FieldAttributes.Private);
             var fields = TypeAspects.GetOrAdd(type.FullName, _ => new Dictionary<string, FieldBuilder>());
@@ -699,7 +704,8 @@ namespace RAspect
             if (needTryCatch)
                 il.BeginExceptionBlock();
 
-            var clonedMethod = GenerateReplacementMethod(type, method, method.Attributes, method.ReturnType, methodParameters, sil, aspectAttributes.Union(fieldAspects).ToList(), parameterAspects, methodContext);
+            var methodReturnType = method.IsConstructor ? typeof(void) : (method as MethodInfo).ReturnType;
+            var clonedMethod = GenerateReplacementMethod(type, method, method.Attributes, methodReturnType, methodParameters, sil, aspectAttributes.Union(fieldAspects).ToList(), parameterAspects, methodContext);
 
             InvokeClonedMethod(il, local, clonedMethod, isStatic, parameterOffset, parameters);
 
@@ -709,9 +715,9 @@ namespace RAspect
                 {
                     il.Emit(OpCodes.Ldloc, methodContext);
                     il.Emit(OpCodes.Ldloc, local);
-                    if (method.ReturnType.IsValueType || method.ReturnType.IsGenericParameter)
+                    if (methodReturnType.IsValueType || methodReturnType.IsGenericParameter)
                     {
-                        il.Emit(OpCodes.Box, method.ReturnType);
+                        il.Emit(OpCodes.Box, methodReturnType);
                     }
 
                     il.Emit(OpCodes.Callvirt, MethodContextReturns.GetSetMethod());
@@ -906,7 +912,7 @@ namespace RAspect
         /// </summary>
         /// <param name="method"></param>
         /// <returns>List{Attribute}</returns>
-        internal static List<Attribute> GetMethodAttributes(MethodInfo method)
+        internal static List<Attribute> GetMethodAttributes(MethodBase method)
         {
             var declaringType = method.DeclaringType;
 
@@ -950,7 +956,7 @@ namespace RAspect
         /// <param name="method">Method</param>
         /// <param name="aspect">Aspect</param>
         /// <returns></returns>
-        internal static bool IsValidAspectFor(MethodInfo method, AspectBase aspect)
+        internal static bool IsValidAspectFor(MethodBase method, AspectBase aspect)
         {
             var methodName = method.Name;
 
@@ -1031,9 +1037,7 @@ namespace RAspect
             var typeAspects = GetValidAspects(classType, asmAspects);
 
             var type = moduleBuilder.DefineType(name, TypeAttributes.Public | TypeAttributes.Serializable | TypeAttributes.Sealed, typeof(object));
-
-            type.DefineDefaultConstructor(MethodAttributes.Public);
-
+            
             var sctor = type.DefineConstructor(MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);
 
             var sil = sctor.GetILGenerator();
@@ -1050,132 +1054,24 @@ namespace RAspect
 
             var ctors = classType.GetConstructors(NonPublicBinding);
 
-            var list = new List<MethodInfo>();
-            var ctorList = new List<ConstructorInfo>();
+            var list = new List<MethodBase>();
             
-            // Define Constructors
-            foreach(var ctor in ctorList)
-            {
-                //TODO: Implement interception of constructor
-
-            }
-
             // Define Methods
-            foreach (var method in methods)
+            foreach (MethodBase method in methods)
             {
-                var methodName = method.Name;
-                
-                var parameters = method.GetParameters();
-                
-                var isProperty = methodName.StartsWith("get_") || methodName.StartsWith("set_");
-
-                var newMethodName = isProperty ? methodName.Substring(4) : methodName;
-
-                var propInfo = isProperty ? classType.GetProperty(newMethodName, NonPublicBinding) : null;
-
-                //Flag to make sure it is really a property and not a method starting with get_ or set_
-                isProperty = propInfo != null;
-
-                var aspectAttrs = (isProperty ? propInfo.GetCustomAttributes<AspectBase>() :
-                    method.GetCustomAttributes<AspectBase>()).Where(x => !x.Exclude);
-
-                //Used for explictly attribute applied to getter and setter
-                if (isProperty && !aspectAttrs.Any())
-                {
-                    aspectAttrs = method.GetCustomAttributes<AspectBase>().Where(x => !x.Exclude);
-                }
-
-                var parameterAspects = parameters.SelectMany(x => x.GetCustomAttributes<AspectBase>()).Where(x => x != null).Where(x => !x.Exclude).ToList();
-
-                var shouldOverride = 
-                    (aspectAttrs.Any() || typeAspects.Any() || parameterAspects.Any() || fieldAspects.Any()) &&
-                    !method.IsGenericMethod &&
-                    !method.DeclaringType.IsSystemDefined();
-
-                if (!shouldOverride)
-                {
-                    continue;
-                }
-                
-                var aspectTypes = new List<Type>();
-
-                var methAspects = new List<AspectBase>();
-
-                foreach(var typeAspect in typeAspects)
-                {
-                    if(IsValidAspectFor(method, typeAspect))
-                    {
-                        methAspects.Add(typeAspect);
-                        aspectTypes.Add(typeAspect.GetType());
-                    }
-                }
-
-                foreach (var methAspect in aspectAttrs)
-                {
-                    var aspectType = methAspect.GetType();
-                    var aspectIndex = aspectTypes.IndexOf(aspectType);
-                    if (aspectIndex < 0)
-                    {
-                        methAspects.Add(methAspect);
-                        aspectTypes.Add(aspectType);
-                    }
-                }
-
-                var analysises = aspectTypes.Select(x => GetCachedILAnalysis(x)).ToList();
-
-                var hasAdditionalAspects = parameterAspects.Any() || fieldAspects.Any() ||
-                    methAspects.Any(x => x.OnBeginAspectBlock != null || x.OnEndAspectBlock != null);
-
-                var allEmptyMethods = analysises.All(x => x.EmptyExceptionMethod && x.EmptyExitMethod && x.EmptyInterceptMethod && x.EmptySuccessMethod) 
-                    && !hasAdditionalAspects;
-                
-                if (allEmptyMethods || (!methAspects.Any() && !hasAdditionalAspects))
-                {
-                    continue;
-                }
-
-                var methodReturnType = method.ReturnType;
-
-                var isVoid = methodReturnType == typeof(void);
-
-                var methodParameters = parameters.Select(p => p.ParameterType).ToArray();
-
-                var isStatic = method.IsStatic;
-
-                var methodInfoField = type.DefineField(string.Concat("__<info>_", method.Name, counter++), typeof(MethodInfo), FieldAttributes.Static | FieldAttributes.Private);
-                var methodAttrField = type.DefineField(string.Concat("__<attr>_", method.Name, counter++), typeof(List<Attribute>), FieldAttributes.Static | FieldAttributes.Private);
-
-                sil.Emit(OpCodes.Ldtoken, method);
-                sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
-                sil.Emit(OpCodes.Isinst, typeof(MethodInfo));
-                sil.Emit(OpCodes.Stsfld, methodInfoField);
-
-                sil.Emit(OpCodes.Ldtoken, method);
-                sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
-                sil.Emit(OpCodes.Isinst, typeof(MethodInfo));
-                sil.Emit(OpCodes.Call, GetMethodAttributesMethod);
-                sil.Emit(OpCodes.Stsfld, methodAttrField);
-
-                var meth = type.DefineMethod(methodName, method.Attributes, method.CallingConvention, methodReturnType, methodParameters);
-
-                MakeMethodGenericIfNeeded(method, meth);
-
-                var il = meth.GetILGenerator();
-
-                var local = !isVoid ? il.DeclareLocal(methodReturnType) : null;
-
-                WeaveMethod(type, method, methAspects, il, local, methodInfoField, methodAttrField, sil, aspectTypes, parameterAspects, methodParameters, fieldAspects);
-
-                if (local != null)
-                {
-                    il.Emit(OpCodes.Ldloc, local);
-                }
-
-                il.Emit(OpCodes.Ret);
-
-                list.Add(method);
+                DefineWeaveMethod(classType, typeAspects, type, sil, fieldAspects, list, method);
             }
 
+            // Define Constructors
+            //foreach (var ctor in ctors)
+            //{
+                //DefineWeaveMethod(classType, typeAspects, type, sil, fieldAspects, list, ctor);
+            //}
+
+            // Define default ctor is not already defined
+            if (!list.Any(x => x.IsConstructor && !x.GetParameters().Any()))
+                type.DefineDefaultConstructor(MethodAttributes.Public);
+            
             sil.Emit(OpCodes.Ret);
 
             var returnType = type.CreateType();
@@ -1184,10 +1080,153 @@ namespace RAspect
             {
                 var newMethod = GetWeavedMethod(returnType, item, useTemp: false);
 
-                item.SwapWith(newMethod);
+                if (newMethod != null)
+                    item.SwapWith(newMethod);
             }
 
             return returnType;
+        }
+
+        /// <summary>
+        /// Define weaved method
+        /// </summary>
+        /// <param name="classType">ClassType</param>
+        /// <param name="typeAspects">TypeAspects</param>
+        /// <param name="type">Type</param>
+        /// <param name="sil">Static ILGenerator</param>
+        /// <param name="fieldAspects">Field Aspects</param>
+        /// <param name="list">Method Bases</param>
+        /// <param name="method">Method</param>
+        private static void DefineWeaveMethod(Type classType, List<AspectBase> typeAspects, TypeBuilder type, ILGenerator sil, List<AspectBase> fieldAspects, List<MethodBase> list, MethodBase method)
+        {
+            var isConstructor = method.IsConstructor;
+            var methodName = method.Name;
+
+            var parameters = method.GetParameters();
+
+            var isProperty = methodName.StartsWith("get_") || methodName.StartsWith("set_");
+
+            var newMethodName = isProperty ? methodName.Substring(4) : methodName;
+
+            var propInfo = isProperty ? classType.GetProperty(newMethodName, NonPublicBinding) : null;
+
+            //Flag to make sure it is really a property and not a method starting with get_ or set_
+            isProperty = propInfo != null;
+
+            var aspectAttrs = (isProperty ? propInfo.GetCustomAttributes<AspectBase>() :
+                method.GetCustomAttributes<AspectBase>()).Where(x => !x.Exclude);
+
+            //Used for explictly attribute applied to getter and setter
+            if (isProperty && !aspectAttrs.Any())
+            {
+                aspectAttrs = method.GetCustomAttributes<AspectBase>().Where(x => !x.Exclude);
+            }
+
+            var parameterAspects = parameters.SelectMany(x => x.GetCustomAttributes<AspectBase>()).Where(x => x != null).Where(x => !x.Exclude).ToList();
+
+            var shouldOverride =
+                (aspectAttrs.Any() || typeAspects.Any() || parameterAspects.Any() || fieldAspects.Any()) &&
+                !method.IsGenericMethod &&
+                !method.DeclaringType.IsSystemDefined();
+
+            if (!shouldOverride)
+            {
+                return;
+            }
+
+            var aspectTypes = new List<Type>();
+
+            var methAspects = new List<AspectBase>();
+
+            foreach (var typeAspect in typeAspects)
+            {
+                if (IsValidAspectFor(method, typeAspect))
+                {
+                    methAspects.Add(typeAspect);
+                    aspectTypes.Add(typeAspect.GetType());
+                }
+            }
+
+            foreach (var methAspect in aspectAttrs)
+            {
+                var aspectType = methAspect.GetType();
+                var aspectIndex = aspectTypes.IndexOf(aspectType);
+                if (aspectIndex < 0)
+                {
+                    methAspects.Add(methAspect);
+                    aspectTypes.Add(aspectType);
+                }
+            }
+
+            var analysises = aspectTypes.Select(x => GetCachedILAnalysis(x)).ToList();
+
+            var hasAdditionalAspects = parameterAspects.Any() || fieldAspects.Any() ||
+                methAspects.Any(x => x.OnBeginAspectBlock != null || x.OnEndAspectBlock != null);
+
+            var allEmptyMethods = analysises.All(x => x.EmptyExceptionMethod && x.EmptyExitMethod && x.EmptyInterceptMethod && x.EmptySuccessMethod)
+                && !hasAdditionalAspects;
+
+            if (allEmptyMethods || (!methAspects.Any() && !hasAdditionalAspects))
+            {
+                return;
+            }
+
+            var methodReturnType = isConstructor ? typeof(void) : (method as MethodInfo).ReturnType;
+
+            var isVoid = methodReturnType == typeof(void);
+
+            var methodParameters = parameters.Select(p => p.ParameterType).ToArray();
+
+            var isStatic = method.IsStatic;
+
+            var methodInfoField = type.DefineField(string.Concat("__<info>_", method.Name, counter++), typeof(MethodBase), FieldAttributes.Static | FieldAttributes.Private);
+            var methodAttrField = type.DefineField(string.Concat("__<attr>_", method.Name, counter++), typeof(List<Attribute>), FieldAttributes.Static | FieldAttributes.Private);
+
+            if (isConstructor)
+                sil.Emit(OpCodes.Ldtoken, method as ConstructorInfo);
+            else
+                sil.Emit(OpCodes.Ldtoken, method as MethodInfo);
+
+            sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            sil.Emit(OpCodes.Stsfld, methodInfoField);
+
+            if (isConstructor)
+                sil.Emit(OpCodes.Ldtoken, method as ConstructorInfo);
+            else
+                sil.Emit(OpCodes.Ldtoken, method as MethodInfo);
+
+            sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            sil.Emit(OpCodes.Call, GetMethodAttributesMethod);
+            sil.Emit(OpCodes.Stsfld, methodAttrField);
+
+            var meth = isConstructor ? 
+                (MethodBase)type.DefineConstructor(method.Attributes, method.CallingConvention, methodParameters)
+                : type.DefineMethod(methodName, method.Attributes, method.CallingConvention, methodReturnType, methodParameters);
+
+            if (!isConstructor)
+                MakeMethodGenericIfNeeded(method, meth as MethodBuilder);
+
+            var il = isConstructor ? (meth as ConstructorBuilder).GetILGenerator() :
+                (meth as MethodBuilder).GetILGenerator();
+
+            if (isConstructor)
+            {
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Call, ObjectCtor);
+            }
+
+            var local = !isVoid ? il.DeclareLocal(methodReturnType) : null;
+
+            WeaveMethod(type, method, methAspects, il, local, methodInfoField, methodAttrField, sil, aspectTypes, parameterAspects, methodParameters, fieldAspects);
+
+            if (local != null)
+            {
+                il.Emit(OpCodes.Ldloc, local);
+            }
+
+            il.Emit(OpCodes.Ret);
+
+            list.Add(method);
         }
 
         /// <summary>
@@ -1240,7 +1279,7 @@ namespace RAspect
         /// <param name="parameterAspects">Parameters Aspects</param>
         /// <param name="methodContext">Method Context</param>
         /// <returns>MethodBuilder</returns>
-        private static MethodBuilder GenerateReplacementMethod(TypeBuilder type, MethodInfo method, MethodAttributes methAttr, Type methodReturnType, Type[] methodParameters, ILGenerator sil, List<AspectBase> aspects, List<AspectBase> parameterAspects, LocalBuilder methodContext)
+        private static MethodBuilder GenerateReplacementMethod(TypeBuilder type, MethodBase method, MethodAttributes methAttr, Type methodReturnType, Type[] methodParameters, ILGenerator sil, List<AspectBase> aspects, List<AspectBase> parameterAspects, LocalBuilder methodContext)
         {
             var meth = type.DefineMethodEx(string.Concat(method.Name, "_"), methAttr, method.CallingConvention, methodReturnType, methodParameters);
             var parameters = method.GetParameters();
@@ -1328,14 +1367,16 @@ namespace RAspect
         /// <param name="item">MethodInfo for metadata</param>
         /// <param name="useTemp">Use Temporary weaved method</param>
         /// <returns>MethodInfo</returns>
-        private static MethodInfo GetWeavedMethod(Type returnType, MethodInfo item, bool useTemp)
+        private static MethodBase GetWeavedMethod(Type returnType, MethodBase item, bool useTemp)
         {
-            MethodInfo newMethod = null;
+            MethodBase newMethod = null;
             var itemParameters = item.GetParameters();
             var itemName = item.Name + (useTemp ? "_" : string.Empty);
             if (item.IsGenericMethod)
             {
-                newMethod = returnType.GetMethods(NonPublicBinding).FirstOrDefault(x => x.Name == itemName &&
+                newMethod = (item.IsConstructor ? 
+                    returnType.GetConstructors(NonPublicBinding).Cast<MethodBase>() 
+                    : returnType.GetMethods(NonPublicBinding)).FirstOrDefault(x => x.Name == itemName &&
                  x.IsGenericMethod && x.GetParameters().All(p => itemParameters.Any(y => y.ParameterType.Name == p.ParameterType.Name)));
                 if (newMethod == null)
                 {
@@ -1344,7 +1385,9 @@ namespace RAspect
             }
             else
             {
-                newMethod = returnType.GetMethod(itemName, NonPublicBinding, null, itemParameters.Select(x => x.ParameterType).ToArray(), null);
+                newMethod = item.IsConstructor ? 
+                    (MethodBase)returnType.GetConstructor(NonPublicBinding & ~BindingFlags.Static, null, itemParameters.Select(x => x.ParameterType).ToArray(), null)
+                    : returnType.GetMethod(itemName, NonPublicBinding, null, itemParameters.Select(x => x.ParameterType).ToArray(), null);
             }
 
             return newMethod;
@@ -1355,7 +1398,7 @@ namespace RAspect
         /// </summary>
         /// <param name="method">Method</param>
         /// <param name="meth">MethodBuilder</param>
-        private static void MakeMethodGenericIfNeeded(MethodInfo method, MethodBuilder meth)
+        private static void MakeMethodGenericIfNeeded(MethodBase method, MethodBuilder meth)
         {
             if (!method.IsGenericMethod)
                 return;

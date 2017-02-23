@@ -40,7 +40,7 @@ namespace RAspect
         /// <summary>
         /// Method
         /// </summary>
-        private MethodInfo method;
+        private MethodBase method;
 
         /// <summary>
         /// CIL Byte Array
@@ -99,9 +99,14 @@ namespace RAspect
         /// Initializes a new instance of the <see cref="ILReader"/> class.
         /// </summary>
         /// <param name="method">Method Info</param>
-        public ILReader(MethodInfo method)
+        public ILReader(MethodBase method)
         {
-            this.method = method ?? throw new ArgumentException("method");
+            if(method == null)
+            {
+                throw new ArgumentException("method");
+            }
+
+            this.method = method;
             this.module = method.Module;
             this.position = 0;
             this.cilCodes = method is DynamicMethod ? GetILBytes(method as DynamicMethod) : method.GetMethodBody().GetILAsByteArray();

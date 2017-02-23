@@ -88,7 +88,7 @@ namespace RAspect
         /// <summary>
         /// Gets or sets aspect code to inject in weaved method for invoking events/delegates
         /// </summary>
-        internal Action<ILGenerator, MethodInfo, FieldInfo, LocalBuilder> OnAspectBlockInvokeEvent { get; set; }
+        internal Action<ILGenerator, MethodBase, FieldInfo, LocalBuilder> OnAspectBlockInvokeEvent { get; set; }
 
         /// <summary>
         /// Gets or sets aspect code to use for substitution of method calls in a given aspect code

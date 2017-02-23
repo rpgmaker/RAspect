@@ -68,11 +68,12 @@ namespace RAspect.ConsoleApp
     public class TestMyClass
     {
         public int ID { get; set; }
+
         public TestMyClass()
         {
             object @this = this;
             TestMyClass3 obj = @this as TestMyClass3;
-            obj.ID = 3333;
+            //obj.ID = 3333;
         }
 
         public void Test(int x, int y, Complex c)
@@ -98,6 +99,11 @@ namespace RAspect.ConsoleApp
         public void Test5()
         {
 
+        }
+
+        public void Test6()
+        {
+            Console.Write("Test6");
         }
     }
 

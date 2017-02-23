@@ -38,9 +38,9 @@ namespace RAspect.Tests.Patterns
     {
         static Random rand = new Random();
         ITestOutputHelper output = null;
+
         public PatternModel()
         {
-
         }
 
         public PatternModel(ITestOutputHelper output)

@@ -178,6 +178,12 @@ namespace RAspect.Tests.Patterns
             Assert.True(result > 0);
         }
 
+        [Fact]
+        public void ShouldNotThrowExceptionInConstructor()
+        {
+            var model = new PatternModel();
+        }
+
         private Task[] ExecuteOnThreads(int threads, Action action)
         {
             var tasks = new Task[threads];

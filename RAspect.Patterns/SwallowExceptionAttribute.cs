@@ -11,7 +11,7 @@ namespace RAspect.Patterns
     /// <summary>
     /// Attribute when applied to method or properties, swallows thrown exception
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Assembly)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Assembly)]
     public class SwallowExceptionAttribute : AspectBase
     {
         /// <summary>
@@ -23,7 +23,7 @@ namespace RAspect.Patterns
         /// <summary>
         /// Initializes a new instance of the <see cref="SwallowExceptionAttribute"/> class.
         /// </summary>
-        public SwallowExceptionAttribute() : base(WeaveTargetType.Methods)
+        public SwallowExceptionAttribute() : base(WeaveTargetType.Methods | WeaveTargetType.Constructors)
         {
             OnBeginAspectBlock = BeginAspectBlock;
             OnEndAspectBlock = EndAspectBlock;
@@ -49,8 +49,7 @@ namespace RAspect.Patterns
         /// <param name="il">ILGenerator</param>
         internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
         {
-            var meth = method as MethodInfo;
-            var returnType = meth.ReturnType;
+            var returnType = method.IsConstructor ? typeof(void) : (method as MethodInfo).ReturnType;
             exLocal = returnType != typeof(void) ? il.DeclareLocal(returnType) : null;
 
             il.BeginExceptionBlock();

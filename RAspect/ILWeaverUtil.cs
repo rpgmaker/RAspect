@@ -68,7 +68,7 @@ namespace RAspect
         /// <param name="meth">Method</param>
         /// <param name="il">ILGenerator</param>
         /// <returns>Dictionary</returns>
-        private static Dictionary<int, ILLabelInfo> GetLabels(MethodInfo meth, ILGenerator il)
+        private static Dictionary<int, ILLabelInfo> GetLabels(MethodBase meth, ILGenerator il)
         {
             var reader = new ILReader(meth);
             var labels = new Dictionary<int, ILLabelInfo>();
@@ -105,7 +105,7 @@ namespace RAspect
         /// <param name="aspects">Aspects</param>
         /// <param name="methodContext">Method Context</param>
         /// <param name="sil">Static ILGenerator</param>
-        internal static void CopyIL(TypeBuilder type, MethodInfo meth, ILGenerator il, Module module, List<AspectBase> aspects, LocalBuilder methodContext, ILGenerator sil = null)
+        internal static void CopyIL(TypeBuilder type, MethodBase meth, ILGenerator il, Module module, List<AspectBase> aspects, LocalBuilder methodContext, ILGenerator sil = null)
         {
             var methodName = meth.Name;
             var body = meth.GetMethodBody();
@@ -125,6 +125,8 @@ namespace RAspect
             LocalBuilder adrLocal = null;
             FieldInfo adrField = null;
             FieldInfo eventField = null;
+            OpCode prevOpCode = default(OpCode);
+
             var reader = new ILReader(meth);
 
             foreach (var local in body.LocalVariables)
@@ -230,7 +232,7 @@ namespace RAspect
 
                         if (method != null)
                         {
-                            var dataMethod = data as MethodInfo;
+                            var dataMethod = data as MethodBase;
                             var dataField = data as FieldInfo;
                             var getter = dataField != null && instruction.Name.StartsWith("ld", StringComparison.OrdinalIgnoreCase);
 
@@ -375,19 +377,27 @@ namespace RAspect
                                 }
                                 else if(dataMethod != null)
                                 {
-                                    WeaveEventInvoke(il, aspects, methodContext, dataMethod, eventField);
-                                    var successes = new List<bool>();
-                                    foreach(var aspect in aspects)
+                                    if (dataMethod.IsConstructor && prevOpCode == OpCodes.Ldarg_0 &&
+                                        dataMethod.DeclaringType == typeof(object))
                                     {
-                                        var invoke = aspect.OnAspectMethodCall;
-                                        if(invoke != null)
-                                        {
-                                            successes.Add(invoke(type, il, meth, dataMethod));
-                                        }
+                                        il.Emit(OpCodes.Pop);
                                     }
+                                    else
+                                    {
+                                        WeaveEventInvoke(il, aspects, methodContext, dataMethod, eventField);
+                                        var successes = new List<bool>();
+                                        foreach (var aspect in aspects)
+                                        {
+                                            var invoke = aspect.OnAspectMethodCall;
+                                            if (invoke != null)
+                                            {
+                                                successes.Add(invoke(type, il, meth, dataMethod));
+                                            }
+                                        }
 
-                                    if (!successes.Any(x => x))
-                                        method.Invoke(il, new object[] { instruction, data });
+                                        if (!successes.Any(x => x))
+                                            method.Invoke(il, new object[] { instruction, data });
+                                    }
                                 }
                                 else
                                     method.Invoke(il, new object[] { instruction, data });
@@ -408,7 +418,8 @@ namespace RAspect
                     if (!meth.IsStatic && instructionValue == OpCodes.Ldarg_0.Value)
                     {
                         il.Emit(OpCodes.Ldarg_0);
-                        il.Emit(OpCodes.Castclass, meth.DeclaringType);
+                        if (!meth.IsConstructor)
+                            il.Emit(OpCodes.Castclass, meth.DeclaringType);
                     }
                     else if (StoreLocalOpCodes.Contains(instruction))
                     {
@@ -442,6 +453,7 @@ namespace RAspect
                             il.Emit(instruction);
                     }
                 }
+                prevOpCode = instruction;
             }
         }
 
@@ -460,7 +472,7 @@ namespace RAspect
         /// </summary>
         /// <param name="method">Method</param>
         /// <returns>Bool</returns>
-        public static bool IsCompilerGenerated(this MethodInfo method)
+        public static bool IsCompilerGenerated(this MethodBase method)
         {
             return method.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
         }
@@ -473,7 +485,7 @@ namespace RAspect
         /// <param name="methodContext">Method Context</param>
         /// <param name="method">Method</param>
         /// <param name="field">Field</param>
-        private static void WeaveEventInvoke(ILGenerator il, List<AspectBase> aspects, LocalBuilder methodContext, MethodInfo method, FieldInfo field)
+        private static void WeaveEventInvoke(ILGenerator il, List<AspectBase> aspects, LocalBuilder methodContext, MethodBase method, FieldInfo field)
         {
             var isEventInvoke = method.Name.Equals("Invoke") && method.DeclaringType.IsSubclassOf(typeof(Delegate));
 
@@ -1006,10 +1018,11 @@ namespace RAspect
         /// <param name="useUnderlyingType">UseUnderlyingType</param>
         /// <param name="sil">Static ILGenerator</param>
         /// <returns></returns>
-        private static MethodBuilder GenerateFunctionCallForDelegate(TypeBuilder type, MethodInfo method, bool useUnderlyingType = true, ILGenerator sil = null)
+        private static MethodBuilder GenerateFunctionCallForDelegate(TypeBuilder type, MethodBase method, bool useUnderlyingType = true, ILGenerator sil = null)
         {
+            var methodReturnType = method.IsConstructor ? typeof(void) : (method as MethodInfo).ReturnType;
             var parameters = method.GetParameters().Select(x => x.ParameterType).ToArray();
-            var meth = type.DefineMethod(string.Concat(method.Name, "DelInvoke"), method.Attributes, method.CallingConvention, method.ReturnType,
+            var meth = type.DefineMethod(string.Concat(method.Name, "DelInvoke"), method.Attributes, method.CallingConvention, methodReturnType,
                 parameters);
 
             var il = meth.GetILGenerator();
@@ -1075,7 +1088,7 @@ namespace RAspect
         /// </summary>
         /// <param name="method">Method</param>
         /// <returns>Tuple</returns>
-        internal static Tuple<string, PdbLine[], Dictionary<int, string>> GetMethodPDBInfo(MethodInfo method)
+        internal static Tuple<string, PdbLine[], Dictionary<int, string>> GetMethodPDBInfo(MethodBase method)
         {
 #if DEBUG
             var methodType = method.DeclaringType;
@@ -1164,7 +1177,15 @@ namespace RAspect
         /// <param name="newMethod">New Method</param>
         public static void SwapWith(this MethodBase meth, MethodBase newMethod)
         {
-            ReplaceMethod(newMethod, meth);
+            try
+            {
+                ReplaceMethod(newMethod, meth);
+            }
+            catch(Exception ex)
+            {
+                throw new ApplicationException(string.Format("Error swapping {0} method for {1}",
+                    meth.Name, meth.DeclaringType.FullName), ex);
+            }
         }
 
         /// <summary>
@@ -1174,9 +1195,31 @@ namespace RAspect
         /// <param name="dest">Destination Method</param>
         private static void ReplaceMethod(MethodBase source, MethodBase dest)
         {
-            IntPtr destAdr = GetMethodAddressRef(dest);
+            if (source.IsConstructor)
+            {
+                if (IntPtr.Size == 8)
+                {
+                    var s = (ulong*)source.MethodHandle.Value.ToPointer();
+                    var d = (ulong*)dest.MethodHandle.Value.ToPointer();
 
-            ReplaceDestAddress(GetMethodAddress(source), destAdr);
+                    *d = *s;
+                }
+                else
+                {
+                    RuntimeHelpers.PrepareMethod(source.MethodHandle);
+                    RuntimeHelpers.PrepareMethod(dest.MethodHandle);
+                    var s = (uint*)source.MethodHandle.Value.ToPointer();
+                    var d = (uint*)dest.MethodHandle.Value.ToPointer();
+
+                    *d = *s;
+                }
+            }
+            else
+            {
+                IntPtr destAdr = GetMethodAddressRef(dest);
+
+                ReplaceDestAddress(GetMethodAddress(source), destAdr);
+            }
         }
 
         /// <summary>
