@@ -23,6 +23,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Patterns.Logging.NL
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Patterns.Logging.Log4Net", "RAspect.Patterns.Logging.Log4Net\RAspect.Patterns.Logging.Log4Net.csproj", "{9133003A-3824-4E40-955E-371E8B47E4AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nuget", "Nuget\Nuget.csproj", "{3910B7F6-2EBC-4109-8EAC-D19B7FBFD21D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Compiler", "RAspect.Compiler\RAspect.Compiler.csproj", "{8679A51F-C214-4281-A569-45808B5ABE43}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +73,14 @@ Global
 		{9133003A-3824-4E40-955E-371E8B47E4AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9133003A-3824-4E40-955E-371E8B47E4AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9133003A-3824-4E40-955E-371E8B47E4AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3910B7F6-2EBC-4109-8EAC-D19B7FBFD21D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3910B7F6-2EBC-4109-8EAC-D19B7FBFD21D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3910B7F6-2EBC-4109-8EAC-D19B7FBFD21D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3910B7F6-2EBC-4109-8EAC-D19B7FBFD21D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8679A51F-C214-4281-A569-45808B5ABE43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8679A51F-C214-4281-A569-45808B5ABE43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8679A51F-C214-4281-A569-45808B5ABE43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8679A51F-C214-4281-A569-45808B5ABE43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

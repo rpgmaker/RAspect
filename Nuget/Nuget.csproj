@@ -1,0 +1,107 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="12.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3910B7F6-2EBC-4109-8EAC-D19B7FBFD21D}</ProjectGuid>
+    <NuGetPackageImportStamp>8682f2ae</NuGetPackageImportStamp>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <ConfigurationName>Debug</ConfigurationName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <ConfigurationName>Release</ConfigurationName>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="RAspect.nuspec">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Tools\init.ps1" />
+    <None Include="Tools\install.ps1" />
+    <None Include="Tools\MSBuild.psm1" />
+    <None Include="Tools\NuGetMSBuild.psm1" />
+    <None Include="Tools\NuGetPowerTools.psd1" />
+    <None Include="Tools\NuGetPowerTools.psm1" />
+    <None Include="Tools\uninstall.ps1" />
+    <None Include="Tools\VS.psm1" />
+  </ItemGroup>
+  <Target Name="Clean">
+    <RemoveDir Directories="$(SolutionDir)NuGetBuild" />
+  </Target>
+  <Target Name="Build" DependsOnTargets="NuGetBuild" />
+  <Target Name="ReBuild" DependsOnTargets="NuGetBuild" />
+  <Target Name="NuGetBuild" DependsOnTargets="Clean">
+    <MakeDir Directories="$(SolutionDir)NuGetBuild" />
+    <Copy SourceFiles="$(SolutionDir)NuGet\RAspect.nuspec" DestinationFolder="$(SolutionDir)NuGetBuild" />
+    <Copy SourceFiles="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
+    <Copy SourceFiles="$(SolutionDir)RAspect.Aspects\bin\$(ConfigurationName)\RAspect.Aspects.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
+    <Copy SourceFiles="$(SolutionDir)RAspect.Contracts\bin\$(ConfigurationName)\RAspect.Contracts.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
+    <Copy SourceFiles="$(SolutionDir)RAspect.Patterns\bin\$(ConfigurationName)\RAspect.Patterns.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
+    <Copy SourceFiles="$(SolutionDir)RAspect.Patterns.Logging.Log4Net\bin\$(ConfigurationName)\RAspect.Patterns.Logging.Log4Net.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
+    <Copy SourceFiles="$(SolutionDir)RAspect.Patterns.Logging.NLog\bin\$(ConfigurationName)\RAspect.Patterns.Logging.NLog.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
+    <Copy SourceFiles="$(ProjectDir)Tools\install.ps1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\uninstall.ps1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\init.ps1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\MSBuild.psm1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\NuGetMSBuild.psm1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\NuGetPowerTools.psd1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\NuGetPowerTools.psm1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <Copy SourceFiles="$(ProjectDir)Tools\VS.psm1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+	<Copy SourceFiles="$(SolutionDir)RAspect.Compiler\bin\$(ConfigurationName)\RAspect.Compiler.exe" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+	<Copy SourceFiles="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+    <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" />
+    <!--<PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Aspects\bin\$(ConfigurationName)\RAspect.Aspects.dll" />
+    <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Contracts\bin\$(ConfigurationName)\RAspect.Contracts.dll" />
+    <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Patterns\bin\$(ConfigurationName)\RAspect.Patterns.dll" />
+    <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Patterns.Logging.Log4Net\bin\$(ConfigurationName)\RAspect.Patterns.Logging.Log4Net.dll" />
+    <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Patterns.Logging.NLog\bin\$(ConfigurationName)\RAspect.Patterns.Logging.NLog.dll" />-->
+  </Target>
+  <ItemGroup>
+    <ProjectReference Include="..\RAspect.Aspects\RAspect.Aspects.csproj">
+      <Project>{3f2de547-b414-4b24-be0e-7879e8604b5b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Name>RAspect.Aspects</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect.Compiler\RAspect.Compiler.csproj">
+      <Project>{8679a51f-c214-4281-a569-45808b5abe43}</Project>
+      <Name>RAspect.Compiler</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect.Contracts\RAspect.Contracts.csproj">
+      <Project>{6cf48dd0-d908-482f-8272-fab5b21277d4}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Name>RAspect.Contracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect.Patterns.Logging.Log4Net\RAspect.Patterns.Logging.Log4Net.csproj">
+      <Project>{9133003a-3824-4e40-955e-371e8b47e4ad}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Name>RAspect.Patterns.Logging.Log4Net</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect.Patterns.Logging.NLog\RAspect.Patterns.Logging.NLog.csproj">
+      <Project>{9d0831e9-0886-49ca-9c35-85952d2ad0fb}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Name>RAspect.Patterns.Logging.NLog</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect.Patterns\RAspect.Patterns.csproj">
+      <Project>{19cefbfc-c5fb-485f-8eb0-4652716b1c0f}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Name>RAspect.Patterns</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RAspect\RAspect.csproj">
+      <Project>{05d73b42-b7f9-407d-bb14-f4bc09ae226b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Name>RAspect</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="..\packages\PepitaPackage.1.21.4\build\PepitaPackage.targets" Condition="Exists('..\packages\PepitaPackage.1.21.4\build\PepitaPackage.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\PepitaPackage.1.21.4\build\PepitaPackage.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\PepitaPackage.1.21.4\build\PepitaPackage.targets'))" />
+  </Target>
+</Project>

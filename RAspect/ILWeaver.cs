@@ -10,6 +10,7 @@ using System.Diagnostics.SymbolStore;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Mono.Cecil.Rocks;
 
 namespace RAspect
 {
@@ -263,6 +264,55 @@ namespace RAspect
         /// <summary>
         /// Weave all methods for current assembly
         /// </summary>
+        /// <param name="module">Module</param>
+        public static void Weave(Mono.Cecil.ModuleDefinition module)
+        {
+            var assembly = module.Assembly;
+            var aspectBaseType = module.Import(typeof(AspectBase));
+
+            var asmAttrs = assembly.CustomAttributes.Where(x => x.AttributeType.IsSubClassOf(aspectBaseType));
+            var types = module.GetTypes();
+
+            foreach(var type in types)
+            {
+                WeaveType(type, asmAttrs, aspectBaseType);
+            }
+        }
+
+        public static void WeaveType(Mono.Cecil.TypeDefinition type, IEnumerable<Mono.Cecil.CustomAttribute> asmAttrs, Mono.Cecil.TypeReference aspectBaseType)
+        {
+            var methods = type.Methods.Select(x => new { Method = x, Attrs = x.CustomAttributes.Where(a => a.AttributeType.IsSubClassOf(aspectBaseType)) });
+            var typeAttrs = type.Resolve().CustomAttributes.Where(x => x.AttributeType.IsSubClassOf(aspectBaseType));
+            var hasAttr = asmAttrs.Any() || typeAttrs.Any() || methods.Any(x => x.Attrs.Any());
+
+            if (!hasAttr)
+            {
+                return;
+            }
+
+            foreach(var methodInfo in methods)
+            {
+                if (!methodInfo.Attrs.Any())
+                {
+                    continue;
+                }
+
+                var method = methodInfo.Method;
+                var body = new Mono.Cecil.Cil.MethodBody(method);
+                var il = body.GetILProcessor();
+
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, "Test");
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ret);
+
+                method.Body = body;
+                method.Body.InitLocals = true;
+                body.OptimizeMacros();
+            }
+        }
+
+        /// <summary>
+        /// Weave all methods for current assembly
+        /// </summary>
         public static void Weave()
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -338,6 +388,47 @@ namespace RAspect
             catch { }
 
             asmBuilder.Save(asmFileName);
+        }
+
+        /// <summary>
+        /// Determine if target type is a subclass of clazz
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="clazz"></param>
+        /// <returns></returns>
+        private static bool IsSubClassOf(this Mono.Cecil.TypeReference target, Mono.Cecil.TypeReference clazz)
+        {
+            if(target.FullName == clazz.FullName)
+            {
+                return true;
+            }
+
+            var baseType = target.Resolve().BaseType;
+
+            while(baseType != null)
+            {
+                if(baseType.FullName == clazz.FullName)
+                {
+                    return true;
+                }
+
+                baseType = baseType.Resolve().BaseType;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determine if the given type has aspect
+        /// </summary>
+        /// <param name="type">Type</param>
+        /// <param name="asmAspects">Assembly</param>
+        /// <returns>Bool</returns>
+        private static bool HasAspect(Mono.Cecil.TypeReference type, IEnumerable<Mono.Cecil.CustomAttribute> asmAspects = null)
+        {
+            var success = false;
+
+            return success;
         }
 
         /// <summary>

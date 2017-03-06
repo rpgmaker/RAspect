@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata minClientVersion="2.8">
+    <id>RAspect</id>
+    <version>$version$</version>
+    <title>RAspect</title>
+    <authors>rpgmaker</authors>
+    <owners>rpgmaker</owners>
+    <developmentDependency>false</developmentDependency>
+    <licenseUrl>http://www.opensource.org/licenses/mit-license.php</licenseUrl>
+    <projectUrl>http://github.com/rpgmaker/RAspect</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>IL Weaver Framework</description>
+    <summary />
+    <language>en-AU</language>
+    <tags>ILWeaving, AOP, Cecil, Weaver</tags>
+    <dependencies>
+      <dependency id="Mono.Cecil" version="0.9.6.4"/>
+    </dependencies>
+  </metadata>
+</package>
