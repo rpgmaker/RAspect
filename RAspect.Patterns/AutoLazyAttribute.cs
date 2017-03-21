@@ -18,21 +18,21 @@ namespace RAspect.Patterns
         /// Label for defining condition to lazy load
         /// </summary>
         [ThreadStatic]
-        private static Label autoLabel;
+        private static Mono.Cecil.Cil.Instruction autoLabel;
 
         /// <summary>
-        /// Field Builder for return value
+        /// Field for return value
         /// </summary>
         [ThreadStatic]
-        private static FieldBuilder autoField;
+        private static Mono.Cecil.FieldDefinition autoField;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AutoLazyAttribute"/> class.
         /// </summary>
         public AutoLazyAttribute() : base(WeaveTargetType.Properties)
         {
-            OnBeginAspectBlock = BeginAspectBlock;
-            OnEndAspectBlock = EndAspectBlock;
+            OnBeginBlock = BeginBlock;
+            OnEndBlock = EndBlock;
         }
 
         /// <summary>
@@ -53,35 +53,37 @@ namespace RAspect.Patterns
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
-            var meth = method as MethodInfo;
-            var returnType = meth.ReturnType;
+            var meth = method;
+            var module = typeBuilder.Module;
+            var returnType = meth.ReturnType.ReflectionType();
 
-            if (returnType == typeof(void) || !(meth.Name.StartsWith("get_") || meth.GetParameters().Length == 0))
+            if (returnType == typeof(void) || !(meth.Name.StartsWith("get_") || meth.Parameters.Count == 0))
                 return;
 
             var isStatic = meth.IsStatic;
-            var isPrimitive = returnType.IsPrimitive;
+            var isPrimitive = returnType.IsPrimitive();
 
             if (isPrimitive)
             {
                 returnType = typeof(Nullable<>).MakeGenericType(returnType);
             }
 
-            autoField = typeBuilder.DefineField("<auto_lazy>_" + meth.Name, returnType,
-                isStatic ? FieldAttributes.Static | FieldAttributes.Private : FieldAttributes.Private);
+            autoField = method.DeclaringType.DefineField("<auto_lazy>_" + meth.Name, returnType,
+                isStatic ? Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Private : Mono.Cecil.FieldAttributes.Private);
+
             autoLabel = il.DefineLabel();
 
             if (!isStatic)
-                il.Emit(OpCodes.Ldarg_0);
-            il.Emit(isStatic ? OpCodes.Ldsflda : OpCodes.Ldflda, autoField);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+            il.Emit(isStatic ? Mono.Cecil.Cil.OpCodes.Ldsflda : Mono.Cecil.Cil.OpCodes.Ldflda, autoField);
             if (isPrimitive)
             {
-                il.Emit(OpCodes.Call, autoField.FieldType.GetMethod("get_HasValue"));
+                il.Emit(Mono.Cecil.Cil.OpCodes.Call, module.Import(returnType.GetMethod("get_HasValue")));
             }
 
-            il.Emit(isPrimitive ? OpCodes.Brtrue : OpCodes.Brfalse, autoLabel);
+            il.Emit(isPrimitive ? Mono.Cecil.Cil.OpCodes.Brtrue : Mono.Cecil.Cil.OpCodes.Brfalse, autoLabel);
         }
 
         /// <summary>
@@ -91,32 +93,35 @@ namespace RAspect.Patterns
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void EndAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void EndBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
-            var meth = method as MethodInfo;
-            var returnType = meth.ReturnType;
+            var meth = method;
+            var module = typeBuilder.Module;
+            var returnType = meth.ReturnType.ReflectionType();
 
-            if (returnType == typeof(void) || !(meth.Name.StartsWith("get_") || meth.GetParameters().Length == 0))
+            if (returnType == typeof(void) || !(meth.Name.StartsWith("get_") || meth.Parameters.Count == 0))
                 return;
 
-            var isPrimitive = returnType.IsPrimitive;
+            var isPrimitive = returnType.IsPrimitive();
             var isStatic = method.IsStatic;
             if (autoField != null)
             {
-                var local = il.DeclareLocal(returnType);
-                il.Emit(OpCodes.Stloc, local);
+                //var local = il.DeclareLocal(returnType);
+
+                //il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, 0);
+                //il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, local);
 
                 if (!isStatic)
-                    il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldloc, local);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, 0);
 
                 if (isPrimitive)
                 {
-                    il.Emit(OpCodes.Newobj, typeof(Nullable<>).MakeGenericType(returnType)
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Newobj, typeof(Nullable<>).MakeGenericType(returnType)
                         .GetConstructor(new Type[] { returnType }));
                 }
 
-                il.Emit(isStatic ? OpCodes.Stsfld : OpCodes.Stfld, autoField);
+                il.Emit(isStatic ? Mono.Cecil.Cil.OpCodes.Stsfld : Mono.Cecil.Cil.OpCodes.Stfld, autoField);
             }
 
             il.MarkLabel(autoLabel);
@@ -124,11 +129,13 @@ namespace RAspect.Patterns
             if (autoField != null)
             {
                 if (!isStatic)
-                    il.Emit(OpCodes.Ldarg_0);
-                il.Emit(isStatic ? OpCodes.Ldsflda : OpCodes.Ldflda, autoField);
-                if (returnType.IsPrimitive) {
-                    il.Emit(OpCodes.Call, autoField.FieldType.GetMethod("get_Value"));
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+                il.Emit(isStatic ? Mono.Cecil.Cil.OpCodes.Ldsflda : Mono.Cecil.Cil.OpCodes.Ldflda, autoField);
+                if (isPrimitive) {
+                    returnType = typeof(Nullable<>).MakeGenericType(returnType);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Call, module.Import(returnType.GetMethod("get_Value")));
                 }
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, 0);
             }
         }
     }

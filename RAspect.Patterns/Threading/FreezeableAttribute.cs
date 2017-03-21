@@ -23,7 +23,7 @@ namespace RAspect.Patterns.Threading
         /// </summary>
         public FreezeableAttribute()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
+            OnBeginBlock = BeginBlock;
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
             var isSetProperty = method.Name.StartsWith("set_") && !method.IsStatic;
 
@@ -53,8 +53,8 @@ namespace RAspect.Patterns.Threading
                 return;
             }
 
-            il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Call, ThrowIfFrozenMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, ThrowIfFrozenMethod);
         }
     }
 }

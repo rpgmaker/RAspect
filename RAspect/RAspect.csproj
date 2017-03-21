@@ -32,26 +32,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Cci.MetadataHelper, Version=1.0.13.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\Microsoft.Cci.MetadataHelper.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.MetadataModel, Version=1.0.13.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\Microsoft.Cci.MetadataModel.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PdbReader, Version=1.0.13.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\Microsoft.Cci.PdbReader.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.PeReader, Version=1.0.13.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\Microsoft.Cci.PeReader.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Cci.SourceModel, Version=1.0.13.0, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\Microsoft.Cci.SourceModel.dll</HintPath>
-    </Reference>
     <Reference Include="Mono.Cecil, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.dll</HintPath>
       <Private>True</Private>
@@ -78,29 +58,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AspectWrapper.cs" />
     <Compile Include="CecilExtensions.cs" />
     <Compile Include="CecilWeaver.cs" />
+    <Compile Include="EntryPointAttribute.cs" />
+    <Compile Include="EntryPointType.cs" />
     <Compile Include="ILAnalysis.cs" />
-    <Compile Include="ILInstruction.cs" />
     <Compile Include="MethodParameterContext.cs" />
     <Compile Include="MethodContext.cs" />
     <Compile Include="ILWeaver.cs" />
     <Compile Include="AspectBase.cs" />
-    <Compile Include="ILLabelInfo.cs" />
-    <Compile Include="ILWeaverUtil.cs" />
-    <Compile Include="ILReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WeaveAccessModifier.cs" />
     <Compile Include="WeaveBlockType.cs" />
     <Compile Include="WeaveTargetType.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="lib\Microsoft.Cci.MetadataHelper.dll" />
-    <Content Include="lib\Microsoft.Cci.MetadataModel.dll" />
-    <Content Include="lib\Microsoft.Cci.PdbReader.Contracts.dll" />
-    <Content Include="lib\Microsoft.Cci.PdbReader.dll" />
-    <Content Include="lib\Microsoft.Cci.PeReader.dll" />
-    <Content Include="lib\Microsoft.Cci.SourceModel.dll" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

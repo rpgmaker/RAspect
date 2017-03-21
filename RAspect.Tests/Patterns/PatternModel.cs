@@ -34,11 +34,32 @@ namespace RAspect.Tests.Patterns
         }
     }
 
+    public class PatternModelGeneric<T> where T : class
+    {
+        [ThreadSafe]
+        public T TestGeneric<T2>(T value, T2 value2)
+        {
+            return default(T);
+        }
+
+        [ThreadSafe]
+        public T TestGeneric3(T value)
+        {
+            return default(T);
+        }
+
+        [ThreadSafe]
+        public void TestGeneric2<T2>(T value, T2 value2)
+        {
+        }
+    }
+
     public class PatternModel
     {
         static Random rand = new Random();
         ITestOutputHelper output = null;
 
+        [ThreadAffinity]
         public PatternModel()
         {
         }
@@ -59,12 +80,19 @@ namespace RAspect.Tests.Patterns
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         [ThreadSafe]
-        public void NumberThreadUnSafe(ref int count)
+        public int NumberThreadUnSafe(ref int count)
         {
             var c = count;
             c++;
             Thread.Sleep(1);
             count = c;
+            return count;
+        }
+
+        [ThreadSafe]
+        public T TestGeneric<T, T2>(T value, T2 value2)
+        {
+            return default(T);
         }
 
         [AutoLazy]
@@ -86,6 +114,18 @@ namespace RAspect.Tests.Patterns
         public DateTime ReplaceDateToday()
         {
             return DateTime.Today;
+        }
+
+        [ThreadUnSafe]
+        public void AllowsOnlyOneThread(ManualResetEvent reset)
+        {
+            reset.WaitOne();
+        }
+
+        [ThreadAffinity]
+        public void AllowOnlyOneThreadForInstance()
+        {
+            //Do nothing
         }
 
         [Tail]

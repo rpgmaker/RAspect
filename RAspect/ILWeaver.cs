@@ -20,64 +20,55 @@ namespace RAspect
     public static class ILWeaver
     {
         /// <summary>
-        /// Generated assembly name
-        /// </summary>
-        internal const string ASM_NAME = "RAspect_ILWeaving";
-
-        /// <summary>
-        /// Lock for generating dynamic assembly
-        /// </summary>
-        private static readonly object LockObject = new object();
-
-        /// <summary>
         /// Binding for non public
         /// </summary>
         internal static readonly BindingFlags NonPublicBinding = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
-        /// Dictionary for keeping track of generated weaved types
-        /// </summary>
-        private static readonly ConcurrentDictionary<string, Type> Types = new ConcurrentDictionary<string, Type>();
-
-        /// <summary>
         /// Dictionary for keeping track of cil analysis
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, ILAnalysis> AspectAnalysises = new ConcurrentDictionary<Type, ILAnalysis>();
+        private static readonly ConcurrentDictionary<string, ILAnalysis> AspectAnalysises = new ConcurrentDictionary<string, ILAnalysis>();
 
         /// <summary>
         /// Dictionary for keeping track of defined methods
         /// </summary>
-        internal static readonly ConcurrentDictionary<string, MethodBuilder> DefinedMethods = new ConcurrentDictionary<string, MethodBuilder>();
+        internal static readonly ConcurrentDictionary<string, Mono.Cecil.MethodDefinition> DefinedMethodDefs = new ConcurrentDictionary<string, Mono.Cecil.MethodDefinition>();
+        
+        /// <summary>
+        /// Dictionary for keeping track of fields definition of aspects
+        /// </summary>
+        internal static readonly ConcurrentDictionary<string, Dictionary<string, Mono.Cecil.FieldDefinition>> TypeFieldAspects = new ConcurrentDictionary<string, Dictionary<string, Mono.Cecil.FieldDefinition>>();
 
         /// <summary>
-        /// Dictionary for keeping track of fields for enter/exit/error/etc
+        /// Dictionary for keeping track of fields definition of aspect wrappers
         /// </summary>
-        internal static readonly ConcurrentDictionary<string, Dictionary<string, FieldBuilder>> TypeAspects = new ConcurrentDictionary<string, Dictionary<string, FieldBuilder>>();
+        internal static readonly ConcurrentDictionary<string, Dictionary<string, Mono.Cecil.FieldDefinition>> TypeFieldAspectWrappers = new ConcurrentDictionary<string, Dictionary<string, Mono.Cecil.FieldDefinition>>();
 
         /// <summary>
         /// Dictionary for keeping track of weaved type flag
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, bool> TypeAspectFlags = new ConcurrentDictionary<Type, bool>();
-
+        private static readonly ConcurrentDictionary<Mono.Cecil.TypeReference, bool> TypeWeavedFlags = new ConcurrentDictionary<Mono.Cecil.TypeReference, bool>();
+        
         /// <summary>
         /// Aspect type
         /// </summary>
-        private static readonly Type AspectType = typeof(AspectBase);
+        private static readonly Type AspectType = typeof(AspectWrapper);
+
+        /// <summary>
+        /// AspectWrapper Constructor
+        /// </summary>
+        private static readonly ConstructorInfo AspectWrapperCtor = AspectType.GetConstructors().FirstOrDefault();
 
         /// <summary>
         /// Method Context type
         /// </summary>
         private static readonly Type MethodContextType = typeof(MethodContext);
-
-        /// <summary>
-        /// To List method info
-        /// </summary>
-        private static readonly MethodInfo ToListAttributeMethod = typeof(Enumerable).GetMethod("ToList").MakeGenericMethod(typeof(Attribute));
-
+        
         /// <summary>
         /// Get Custom Attributes for method info
         /// </summary>
         private static readonly MethodInfo GetMethodAttributesMethod = typeof(ILWeaver).GetMethod("GetMethodAttributes", NonPublicBinding);
+        
         /// <summary>
         /// Aspect Entry method info
         /// </summary>
@@ -119,9 +110,9 @@ namespace RAspect
         private static readonly PropertyInfo MethodContextArguments = MethodContextType.GetProperty("Arguments");
 
         /// <summary>
-        /// MethodContext Continue Property
+        /// MethodContext Proceed Property
         /// </summary>
-        private static readonly PropertyInfo MethodContextContinue = MethodContextType.GetProperty("Continue");
+        private static readonly PropertyInfo MethodContextProceed = MethodContextType.GetProperty("Proceed");
 
         /// <summary>
         /// MethodContext Method Property
@@ -139,11 +130,6 @@ namespace RAspect
         private static readonly PropertyInfo MethodContextInstance = MethodContextType.GetProperty("Instance");
 
         /// <summary>
-        /// Default constructor for object class
-        /// </summary>
-        private static readonly ConstructorInfo ObjectCtor = typeof(object).GetConstructor(Type.EmptyTypes);
-
-        /// <summary>
         /// Collection of cached aspect instances
         /// </summary>
         private static readonly ConcurrentDictionary<Type, AspectBase> Aspects = new ConcurrentDictionary<Type, AspectBase>();
@@ -154,84 +140,9 @@ namespace RAspect
         private static ConstructorInfo MethodParameterContextCtor = typeof(MethodParameterContext).GetConstructor(new[] { typeof(string), typeof(bool) });
 
         /// <summary>
-        /// AssemblyBuilder for aspect types
-        /// </summary>
-        private static AssemblyBuilder asmBuilder;
-
-        /// <summary>
-        /// ModuleBuilder for aspect dynamic assembly
-        /// </summary>
-        private static ModuleBuilder moduleBuilder;
-
-        /// <summary>
         /// Prefix counter for fields/method definitions
         /// </summary>
         private static long counter = 0;
-
-        /// <summary>
-        /// Initializes static members of the <see cref="ILWeaver"/> class.
-        /// </summary>
-        static ILWeaver()
-        {
-            var debug = false;
-            asmBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName(ASM_NAME) { Version = new Version(1, 0, 0, 0) }, AssemblyBuilderAccess.RunAndSave);
-            asmBuilder.SetCustomAttribute(new CustomAttributeBuilder(typeof(CompilerGeneratedAttribute).GetConstructor(Type.EmptyTypes), new object[] { }));
-#if DEBUG
-            var debugCtor = typeof(DebuggableAttribute).GetConstructor(new Type[] { typeof(DebuggableAttribute.DebuggingModes) });
-            asmBuilder.SetCustomAttribute(new CustomAttributeBuilder(debugCtor, new object[] { DebuggableAttribute.DebuggingModes.Default |
-                DebuggableAttribute.DebuggingModes.DisableOptimizations }));
-            debug = true;
-#endif
-            var filename = string.Concat(ASM_NAME, ".dll");
-            moduleBuilder = asmBuilder.DefineDynamicModule(filename, filename, debug);
-        }
-
-        /// <summary>
-        /// Rewrite weaved methods for given generic type
-        /// </summary>
-        /// <typeparam name="T">Generic Type</typeparam>
-        public static void Weave<T>()
-            where T : class
-        {
-            Weave(typeof(T));
-        }
-
-        /// <summary>
-        /// Rewrite methods for given type
-        /// </summary>
-        /// <param name="type">Class Type</param>
-        public static void Weave(Type type)
-        {
-            try
-            {
-                var hasAspect = HasAspect(type);
-                
-                if (!hasAspect)
-                {
-                    return;
-                }
-
-                lock (LockObject)
-                {
-                    Type weaveType = null;
-                    var key = type.FullName;
-
-                    if (!Types.TryGetValue(key, out weaveType))
-                    {
-                        weaveType = WeaveType(type);
-
-                        //Trigger static constructor
-                        Activator.CreateInstance(weaveType);
-
-                        Types.GetOrAdd(key, weaveType);
-                    }
-                }
-            }
-            catch (Exception ex) when (!ex.GetType().FullName.StartsWith("RAspect."))
-            {
-                throw new ApplicationException(string.Format("Error weaving methods for {0}", type.FullName), ex);
-            }
-        }
 
         /// <summary>
         /// Get aspect instance from cache
@@ -268,126 +179,30 @@ namespace RAspect
         public static void Weave(Mono.Cecil.ModuleDefinition module)
         {
             var assembly = module.Assembly;
-            var aspectBaseType = module.Import(typeof(AspectBase));
 
-            var asmAttrs = assembly.CustomAttributes.Where(x => x.AttributeType.IsSubClassOf(aspectBaseType));
-            var types = module.GetTypes();
+            var asmAttrs = assembly.GetCustomAttributes<AspectBase>();
+            var types = module.GetTypes().ToList();
 
-            foreach(var type in types)
+            var type = new Mono.Cecil.TypeDefinition("RAspectImplementation", "__<>_Implementation", Mono.Cecil.TypeAttributes.Public | Mono.Cecil.TypeAttributes.Class, module.TypeSystem.Object);
+
+            var sctor = new Mono.Cecil.MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static | Mono.Cecil.MethodAttributes.Private | Mono.Cecil.MethodAttributes.HideBySig | Mono.Cecil.MethodAttributes.SpecialName | Mono.Cecil.MethodAttributes.RTSpecialName, module.TypeSystem.Void);
+            var body = sctor.Body;
+
+            body.InitLocals = true;
+            body.OptimizeMacros();
+
+            type.Methods.Add(sctor);
+
+            module.Types.Add(type);
+
+            var sil = sctor.Body.GetILProcessor();
+
+            foreach (var classType in types)
             {
-                WeaveType(type, asmAttrs, aspectBaseType);
-            }
-        }
-
-        public static void WeaveType(Mono.Cecil.TypeDefinition type, IEnumerable<Mono.Cecil.CustomAttribute> asmAttrs, Mono.Cecil.TypeReference aspectBaseType)
-        {
-            var methods = type.Methods.Select(x => new { Method = x, Attrs = x.CustomAttributes.Where(a => a.AttributeType.IsSubClassOf(aspectBaseType)) });
-            var typeAttrs = type.Resolve().CustomAttributes.Where(x => x.AttributeType.IsSubClassOf(aspectBaseType));
-            var hasAttr = asmAttrs.Any() || typeAttrs.Any() || methods.Any(x => x.Attrs.Any());
-
-            if (!hasAttr)
-            {
-                return;
-            }
-
-            foreach(var methodInfo in methods)
-            {
-                if (!methodInfo.Attrs.Any())
-                {
-                    continue;
-                }
-
-                var method = methodInfo.Method;
-                var body = new Mono.Cecil.Cil.MethodBody(method);
-                var il = body.GetILProcessor();
-
-                il.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, "Test");
-                il.Emit(Mono.Cecil.Cil.OpCodes.Ret);
-
-                method.Body = body;
-                method.Body.InitLocals = true;
-                body.OptimizeMacros();
-            }
-        }
-
-        /// <summary>
-        /// Weave all methods for current assembly
-        /// </summary>
-        public static void Weave()
-        {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var aspectTypes = new List<Type>();
-
-            foreach (var asm in assemblies)
-            {
-                try
-                {
-                    var asmName = asm.GetName().Name;
-                    if (asmName.StartsWith("System") || asmName.StartsWith("Microsoft") || asmName.StartsWith("mscorlib"))
-                    {
-                        continue;
-                    }
-
-                    var attrs = asm.GetCustomAttributes<AspectBase>();
-                    var asmAspects = attrs.Any() ? attrs : null;
-
-                    foreach (var type in asm.GetTypes())
-                    {
-                        if (HasAspect(type, asmAspects))
-                        {
-                            aspectTypes.Add(type);
-                        }
-                    }
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    var types = ex.Types != null ? ex.Types : null;
-                    if (types != null)
-                    {
-                        foreach (var type in types)
-                        {
-                            if(type == null)
-                            {
-                                continue;
-                            }
-
-                            var attrs = type.Assembly.GetCustomAttributes<AspectBase>();
-                            var asmAspects = attrs.Any() ? attrs : null;
-
-                            if (HasAspect(type, asmAspects))
-                            {
-                                aspectTypes.Add(type);
-                            }
-                        }
-                    }
-                }
+                WeaveType(classType, asmAttrs, type, sil);
             }
 
-            foreach (var aspectType in aspectTypes)
-            {
-                Weave(aspectType);
-            }
-        }
-
-        /// <summary>
-        /// Save Assembly to disk
-        /// </summary>
-        /// <param name="fileName">Optional Filename</param>
-        public static void SaveAssembly()
-        {
-            var asmFileName = string.Concat(asmBuilder.GetName().Name, ".dll");
-            var fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, asmFileName);
-
-            try
-            {
-                if (File.Exists(fileName))
-                {
-                    File.Delete(fileName);
-                }
-            }
-            catch { }
-
-            asmBuilder.Save(asmFileName);
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Ret);
         }
 
         /// <summary>
@@ -424,20 +239,7 @@ namespace RAspect
         /// <param name="type">Type</param>
         /// <param name="asmAspects">Assembly</param>
         /// <returns>Bool</returns>
-        private static bool HasAspect(Mono.Cecil.TypeReference type, IEnumerable<Mono.Cecil.CustomAttribute> asmAspects = null)
-        {
-            var success = false;
-
-            return success;
-        }
-
-        /// <summary>
-        /// Determine if the given type has aspect
-        /// </summary>
-        /// <param name="type">Type</param>
-        /// <param name="asmAspects">Assembly</param>
-        /// <returns>Bool</returns>
-        private static bool HasAspect(Type type, IEnumerable<AspectBase> asmAspects = null)
+        private static bool HasAspect(Mono.Cecil.TypeDefinition type, IEnumerable<AspectBase> asmAspects = null)
         {
             bool success = false;
 
@@ -446,23 +248,23 @@ namespace RAspect
                 return false;
             }
 
-            if (TypeAspectFlags.TryGetValue(type, out success))
+            if (TypeWeavedFlags.TryGetValue(type, out success))
             {
                 return success;
             }
 
             var typeAspects = GetValidAspects(type, asmAspects);
 
-            if(typeAspects.Any() && typeAspects.All(x => x.Exclude))
+            if (typeAspects.Any() && typeAspects.All(x => x.Exclude))
             {
-                return TypeAspectFlags[type] = false;
+                return TypeWeavedFlags[type] = false;
             }
 
-            var methods = type.GetMethods(NonPublicBinding).Where(x => x.DeclaringType == type);
+            var methods = type.Methods.Where(x => x.DeclaringType == type);
 
-            var props = type.GetProperties(NonPublicBinding).Where(x => x.DeclaringType == type);
+            var props = type.Properties.Where(x => x.DeclaringType == type);
 
-            var fields = type.GetFields(NonPublicBinding).Where(x => x.DeclaringType == type);
+            var fields = type.Fields.Where(x => x.DeclaringType == type);
 
             foreach (var method in methods)
             {
@@ -479,7 +281,7 @@ namespace RAspect
                 typeAspects.AddRange(field.GetCustomAttributes<AspectBase>().Where(x => !x.Exclude));
             }
 
-            return success = TypeAspectFlags[type] = typeAspects.Any();
+            return success = TypeWeavedFlags[type] = typeAspects.Any();
         }
 
         /// <summary>
@@ -488,19 +290,19 @@ namespace RAspect
         /// <param name="type">Type</param>
         /// <param name="asmAspects">Optional Assembly Aspects</param>
         /// <returns></returns>
-        private static List<AspectBase> GetValidAspects(Type type, IEnumerable<AspectBase> asmAspects = null)
+        private static List<AspectBase> GetValidAspects(Mono.Cecil.TypeReference type, IEnumerable<AspectBase> asmAspects = null)
         {
-            var aspectAttributes = type.GetCustomAttributes<AspectBase>().Where(x => !x.Exclude).ToList();
+            var aspectAttributes = type.Resolve().GetCustomAttributes<AspectBase>().Where(x => !x.Exclude).ToList();
 
             var fullName = type.FullName;
 
-            var assemblyAspects = (asmAspects ?? type.Assembly.GetCustomAttributes<AspectBase>()).Where(x => !x.Exclude);
+            var assemblyAspects = (asmAspects ?? type.Module.Assembly.GetCustomAttributes<AspectBase>()).Where(x => !x.Exclude);
 
             foreach (var aspect in assemblyAspects)
             {
                 var searchPattern = aspect.SearchTypePattern;
                 var isValid = aspect.Target != 0 && (string.IsNullOrWhiteSpace(searchPattern) ||
-                    Regex.IsMatch(fullName, searchPattern));
+                    searchPattern.ToRegex().IsMatch(fullName));
 
                 if (!isValid)
                     continue;
@@ -516,10 +318,9 @@ namespace RAspect
         /// </summary>
         /// <param name="aspectType">Aspect Type</param>
         /// <returns>ILAnalysis</returns>
-        private static ILAnalysis GetCachedILAnalysis(Type aspectType)
+        private static ILAnalysis GetCachedILAnalysis(Mono.Cecil.TypeReference aspectType)
         {
-            lock (LockObject)
-                return AspectAnalysises.GetOrAdd(aspectType, _ => GetILAnalysis(aspectType));
+            return AspectAnalysises.GetOrAdd(aspectType.FullName, _ => GetILAnalysis(aspectType));
         }
 
         /// <summary>
@@ -527,66 +328,60 @@ namespace RAspect
         /// </summary>
         /// <param name="aspectType">Aspect Type</param>
         /// <returns>ILAnalysis</returns>
-        private static ILAnalysis GetILAnalysis(Type aspectType)
+        private static ILAnalysis GetILAnalysis(Mono.Cecil.TypeReference aspectType)
         {
-            var methods = new[] {
-                aspectType.GetMethod("OnEntry", NonPublicBinding),
-                aspectType.GetMethod("OnExit", NonPublicBinding),
-                aspectType.GetMethod("OnException", NonPublicBinding),
-                aspectType.GetMethod("OnSuccess", NonPublicBinding),
-                aspectType.GetMethod("OnEnter", NonPublicBinding),
-                aspectType.GetMethod("OnLeave", NonPublicBinding),
-                aspectType.GetMethod("OnError", NonPublicBinding),
-                aspectType.GetMethod("OnComplete", NonPublicBinding)
-            };
-
+            var aspectTypeBase = typeof(AspectBase).ToCecil();
+            var methods = aspectType.GetMethods().Where(x => 
+                x.DeclaringType.IsSubClassOf(aspectTypeBase) && (x.CustomAttributes.Count > 0 || x.DeclaringType.FullName == aspectType.FullName));
+            
             var analysis = new ILAnalysis();
-            var @continue = MethodContextContinue.GetSetMethod();
-            var @continueGet = MethodContextContinue.GetGetMethod();
-            var arguments = MethodContextArguments.GetGetMethod();
-            var instance = MethodContextInstance.GetGetMethod();
-            var meth = MethodContextMethod.GetGetMethod();
-            var @return = MethodContextReturns.GetGetMethod();
+            var @proceed = MethodContextProceed.GetSetMethod().ToCecil();
+            var @proceedGet = MethodContextProceed.GetGetMethod().ToCecil();
+            var arguments = MethodContextArguments.GetGetMethod().ToCecil();
+            var instance = MethodContextInstance.GetGetMethod().ToCecil();
+            var meth = MethodContextMethod.GetGetMethod().ToCecil();
+            var @return = MethodContextReturns.GetGetMethod().ToCecil();
             var @break = false;
 
             foreach (var method in methods)
             {
-                if (method == null)
+                var entryPoint = (method.GetBaseMethod() ?? method).GetCustomAttribute<EntryPointAttribute>();
+                
+                if (entryPoint == null || !method.HasBody)
                 {
                     continue;
                 }
 
-                var methodName = method.Name;
-                var cilReader = new ILReader(method);
-                while (cilReader.Read())
+                var instructions = method.Body.Instructions;
+                foreach(var instruction in instructions)
                 {
-                    var current = cilReader.Current;
+                    var instructionValue = instruction.OpCode.Value;
 
-                    if (current.Instruction.Value == OpCodes.Nop.Value)
+                    if (instructionValue == Mono.Cecil.Cil.OpCodes.Nop.Value)
                     {
                         continue;
                     }
 
-                    var propMethod = current.Data as MethodInfo;
-                    
-                    if (current.Instruction.Value != OpCodes.Ret.Value)
+                    var propMethod = instruction.Operand as Mono.Cecil.MethodReference;
+
+                    if (instructionValue != Mono.Cecil.Cil.OpCodes.Ret.Value)
                     {
-                        if (methodName == "OnEntry" || methodName == "OnEnter")
+                        if (entryPoint.Type == EntryPointType.Enter)
                         {
                             analysis.EmptyInterceptMethod = false;
                         }
 
-                        if (methodName == "OnExit" || methodName == "OnLeave")
+                        if (entryPoint.Type == EntryPointType.Exit)
                         {
                             analysis.EmptyExitMethod = false;
                         }
 
-                        if (methodName == "OnException" || methodName == "OnError")
+                        if (entryPoint.Type == EntryPointType.Error)
                         {
                             analysis.EmptyExceptionMethod = false;
                         }
 
-                        if (methodName == "OnSuccess" || methodName == "OnComplete")
+                        if (entryPoint.Type == EntryPointType.Success)
                         {
                             analysis.EmptySuccessMethod = false;
                         }
@@ -597,13 +392,13 @@ namespace RAspect
                         continue;
                     }
 
-                    analysis.ContinueUsed = analysis.ContinueUsed || (@continue == propMethod || @continueGet == propMethod);
-                    analysis.ArgumentsUsed = analysis.ArgumentsUsed || arguments == propMethod;
-                    analysis.InstanceUsed = analysis.InstanceUsed || instance == propMethod;
-                    analysis.MethodUsed = analysis.MethodUsed || meth == propMethod;
-                    analysis.ReturnUsed = analysis.ReturnUsed || @return == propMethod;
+                    analysis.ProceedUsed = analysis.ProceedUsed || (@proceed.FullName == propMethod.FullName || @proceedGet.FullName == propMethod.FullName);
+                    analysis.ArgumentsUsed = analysis.ArgumentsUsed || arguments.FullName == propMethod.FullName;
+                    analysis.InstanceUsed = analysis.InstanceUsed || instance.FullName == propMethod.FullName;
+                    analysis.MethodUsed = analysis.MethodUsed || meth.FullName == propMethod.FullName;
+                    analysis.ReturnUsed = analysis.ReturnUsed || @return.FullName == propMethod.FullName;
 
-                    if (analysis.ContinueUsed && analysis.ArgumentsUsed && analysis.InstanceUsed && analysis.MethodUsed && analysis.ReturnUsed)
+                    if (analysis.ProceedUsed && analysis.ArgumentsUsed && analysis.InstanceUsed && analysis.MethodUsed && analysis.ReturnUsed)
                     {
                         @break = true;
                         break;
@@ -618,7 +413,7 @@ namespace RAspect
 
             return analysis;
         }
-
+        
         /// <summary>
         /// Weave method from method info
         /// </summary>
@@ -634,61 +429,97 @@ namespace RAspect
         /// <param name="parameterAspects">Parameters Aspect</param>
         /// <param name="methodParameters">Method Parameters</param>
         /// <param name="fieldAspects">Field Aspects</param>
-        private static void WeaveMethod(TypeBuilder type, MethodBase method, List<AspectBase> aspectAttributes, ILGenerator il, LocalBuilder local, FieldBuilder methodInfoField, FieldBuilder methodAttrField, ILGenerator sil, List<Type> aspectTypes, List<AspectBase> parameterAspects, Type[] methodParameters, List<AspectBase> fieldAspects)
+        /// <param name="copy">Method Copy</param>
+        private static void WeaveMethod(Mono.Cecil.TypeDefinition type, Mono.Cecil.MethodDefinition method, List<AspectBase> aspectAttributes, Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.Cil.VariableDefinition local, Mono.Cecil.FieldDefinition methodInfoField, Mono.Cecil.FieldDefinition methodAttrField, Mono.Cecil.Cil.ILProcessor sil, List<Mono.Cecil.TypeReference> aspectTypes, List<AspectBase> parameterAspects, Mono.Cecil.TypeReference[] methodParameters, List<AspectBase> fieldAspects, Mono.Cecil.MethodDefinition copy)
         {
-            var argumentsField = type.DefineField(string.Concat("_<args>_", method.Name, counter++), typeof(MethodParameterContext[]), FieldAttributes.Static | FieldAttributes.Private);
-            var fields = TypeAspects.GetOrAdd(type.FullName, _ => new Dictionary<string, FieldBuilder>());
-            
-            foreach (var aspectType in aspectTypes.Union(fieldAspects.Select(x => x.GetType())).Union(parameterAspects.Select(x => x.GetType())))
+            var module = type.Module;
+            var declaringType = method.DeclaringType;
+            var argumentsField = type.DefineField(string.Concat("_<args>_", method.Name, counter++), typeof(MethodParameterContext[]), Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Public);
+            var fields = TypeFieldAspects.GetOrAdd(declaringType.FullName, _ => new Dictionary<string, Mono.Cecil.FieldDefinition>());
+            var fieldWrappers = TypeFieldAspectWrappers.GetOrAdd(declaringType.FullName, _ => new Dictionary<string, Mono.Cecil.FieldDefinition>());
+            var parameters = method.Parameters;
+
+
+            foreach (var aspectType in aspectTypes.Union(fieldAspects.Select(x => x.GetType().ToCecil())).Union(parameterAspects.Select(x => x.GetType().ToCecil())))
             {
                 var key = aspectType.FullName;
-                FieldBuilder staticField = null;
+                Mono.Cecil.FieldDefinition staticField = null;
 
                 if (!fields.TryGetValue(key, out staticField))
                 {
-                    fields[key] = staticField = type.DefineField(string.Concat("_<aspect>", key), aspectType, FieldAttributes.Private | FieldAttributes.Static);
-                    sil.Emit(OpCodes.Call, GetAspectValue.MakeGenericMethod(aspectType));
-                    sil.Emit(OpCodes.Stsfld, staticField);
+                    var aspectTypeType = aspectType.ReflectionType();
+                    
+                    //Define Aspect
+                    fields[key] = staticField = type.DefineField(string.Concat("_<aspect>", key), aspectTypeType, Mono.Cecil.FieldAttributes.Public | Mono.Cecil.FieldAttributes.Static);
+
+                    //Define AspectWrapper
+                    fieldWrappers[key] = type.DefineField(string.Concat("_<aspect_wrapper>", key), AspectType, Mono.Cecil.FieldAttributes.Public | Mono.Cecil.FieldAttributes.Static);
+
+                    sil.Emit(Mono.Cecil.Cil.OpCodes.Call, GetAspectValue.MakeGenericMethod(aspectTypeType));
+                    sil.Emit(Mono.Cecil.Cil.OpCodes.Dup);
+                    sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, staticField);
+                    
+                    sil.Emit(Mono.Cecil.Cil.OpCodes.Newobj, AspectWrapperCtor);
+                    sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, fieldWrappers[key]);
+                }
+            }
+            
+            for (var i = 0; i < parameterAspects.Count; i++)
+            {
+                var aspect = parameterAspects[i];
+                var parameter = parameters[i];
+                var beginBlock = aspect.OnBeginBlock;
+                if (beginBlock != null)
+                {
+                    beginBlock(declaringType, method, parameter, il);
                 }
             }
 
+            foreach (var aspect in aspectAttributes)
+            {
+                var beginBlock = aspect.OnBeginBlock;
+                if (beginBlock != null)
+                {
+                    beginBlock(declaringType, method, null, il);
+                }
+            }
+            
             var isStatic = method.IsStatic;
             var parameterOffset = isStatic ? 0 : 1;
 
             var analysises = aspectTypes.Select(x => GetCachedILAnalysis(x)).ToList();
-            var continueUsed = analysises.Any(x => x.ContinueUsed);
+            var proceedUsed = analysises.Any(x => x.ProceedUsed);
             var methodUsed = analysises.Any(x => x.MethodUsed);
             var argumentsUsed = analysises.Any(x => x.ArgumentsUsed);
             var instanceUsed = analysises.Any(x => x.InstanceUsed);
             var returnUsed = analysises.Any(x => x.ReturnUsed);
-            var usesNone = !(continueUsed || methodUsed || argumentsUsed || instanceUsed || returnUsed);
+            var usesNone = !(proceedUsed || methodUsed || argumentsUsed || instanceUsed || returnUsed);
             var needTryCatch = analysises.Any(x => !x.EmptyExceptionMethod || !x.EmptyExitMethod);
 
-            var parameters = method.GetParameters();
             var count = parameters.Where(x => !x.IsOut).Count();
 
             var methodContext = usesNone ? null : il.DeclareLocal(typeof(MethodContext));
             var argumentValues = count > 0 && argumentsUsed ? il.DeclareLocal(typeof(object[])) : null;
 
-            var continueLabel = continueUsed ? il.DefineLabel() : default(Label);
-            var notContinueLabel = continueUsed ? il.DefineLabel() : default(Label);
-            var continueLocal = continueUsed ? il.DeclareLocal(typeof(bool)) : null;
+            var proceedLabel = proceedUsed ? il.DefineLabel() : default(Mono.Cecil.Cil.Instruction);
+            var notProceedLabel = proceedUsed ? il.DefineLabel() : default(Mono.Cecil.Cil.Instruction);
+            var proceedLocal = proceedUsed ? il.DeclareLocal(typeof(bool)) : null;
             var ex = il.DeclareLocal(typeof(Exception));
 
             var index = 0;
 
             if (argumentValues != null)
             {
-                sil.Emit(OpCodes.Ldc_I4, count);
-                sil.Emit(OpCodes.Newarr, typeof(MethodParameterContext));
-                sil.Emit(OpCodes.Stsfld, argumentsField);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, count);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Newarr, typeof(MethodParameterContext));
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, argumentsField);
 
-                il.Emit(OpCodes.Ldc_I4, count);
-                il.Emit(OpCodes.Newarr, typeof(object));
-                il.Emit(OpCodes.Stloc, argumentValues);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, count);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Newarr, typeof(object));
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, argumentValues);
             }
 
-            for (var i = 0; argumentsUsed && i < parameters.Length; i++)
+            for (var i = 0; argumentsUsed && i < parameters.Count; i++)
             {
                 var parameter = parameters[i];
                 if (parameter.IsOut)
@@ -696,23 +527,25 @@ namespace RAspect
                     continue;
                 }
 
-                sil.Emit(OpCodes.Ldsfld, argumentsField);
-                sil.Emit(OpCodes.Ldc_I4, index);
-                sil.Emit(OpCodes.Ldstr, parameter.Name);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, argumentsField);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, index);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, parameter.Name);
 
-                sil.Emit(OpCodes.Ldc_I4, parameter.ParameterType.IsByRef ? 1 : 0);
-                sil.Emit(OpCodes.Newobj, MethodParameterContextCtor);
-                sil.Emit(OpCodes.Stelem_Ref);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, parameter.ParameterType.IsByReference ? 1 : 0);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Newobj, module.Import(MethodParameterContextCtor));
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Stelem_Ref);
 
-                il.Emit(OpCodes.Ldloc, argumentValues);
-                il.Emit(OpCodes.Ldc_I4, index);
-                il.Emit(OpCodes.Ldarg, i + parameterOffset);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, argumentValues);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, index);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg, i + parameterOffset);
                 if (parameter.ParameterType.IsValueType || parameter.ParameterType.IsGenericParameter)
                 {
-                    il.Emit(OpCodes.Box, parameter.ParameterType);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Box, parameter.ParameterType);
                 }
 
-                il.Emit(OpCodes.Stelem_Ref);
+                //Capture parameter attribute
+
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stelem_Ref);
 
                 index++;
             }
@@ -721,31 +554,31 @@ namespace RAspect
             {
                 if (argumentValues != null)
                 {
-                    il.Emit(OpCodes.Ldsfld, argumentsField);
-                    il.Emit(OpCodes.Ldloc, argumentValues);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, argumentsField);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, argumentValues);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldnull);
-                    il.Emit(OpCodes.Ldnull);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
                 }
 
-                il.Emit(OpCodes.Newobj, methodContext.LocalType.GetConstructors()[0]);
-                il.Emit(OpCodes.Stloc, methodContext);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Newobj, module.Import(methodContext.VariableType.GetConstructors().First()));
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, methodContext);
             }
 
             if (!isStatic && (instanceUsed && methodContext != null))
             {
-                il.Emit(OpCodes.Ldloc, methodContext);
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Callvirt, MethodContextInstance.GetSetMethod());
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextInstance.GetSetMethod());
             }
 
             if (methodUsed)
             {
-                il.Emit(OpCodes.Ldloc, methodContext);
-                il.Emit(OpCodes.Ldsfld, methodInfoField);
-                il.Emit(OpCodes.Callvirt, MethodContextMethod.GetSetMethod());
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, methodInfoField);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextMethod.GetSetMethod());
 
                 var needAttrs = aspectAttributes.Any(x => x.BlockType == WeaveBlockType.Inline) ||
                     fieldAspects.Any(x => x.BlockType == WeaveBlockType.Inline) ||
@@ -753,9 +586,9 @@ namespace RAspect
 
                 if (needAttrs)
                 {
-                    il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Ldsfld, methodAttrField);
-                    il.Emit(OpCodes.Callvirt, MethodContextAttributes.GetSetMethod());
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, methodAttrField);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextAttributes.GetSetMethod());
                 }
             }
 
@@ -769,49 +602,48 @@ namespace RAspect
                     continue;
                 }
 
-                il.Emit(OpCodes.Ldsfld, fields[aspectType.FullName]);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, fieldWrappers[aspectType.FullName]);
                 if (methodContext != null)
                 {
-                    il.Emit(OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldnull);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
                 }
 
-                il.Emit(OpCodes.Callvirt, AspectEntry);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, AspectEntry);
             }
 
-            if (continueUsed)
+            if (proceedUsed)
             {
-                il.Emit(OpCodes.Ldloc, methodContext);
-                il.Emit(OpCodes.Callvirt, MethodContextContinue.GetGetMethod());
-                il.Emit(OpCodes.Stloc, continueLocal);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextProceed.GetGetMethod());
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, proceedLocal);
 
-                il.Emit(OpCodes.Ldloc, continueLocal);
-                il.Emit(OpCodes.Brfalse, continueLabel);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, proceedLocal);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Brfalse, proceedLabel);
             }
 
             if (needTryCatch)
                 il.BeginExceptionBlock();
 
-            var methodReturnType = method.IsConstructor ? typeof(void) : (method as MethodInfo).ReturnType;
-            var clonedMethod = GenerateReplacementMethod(type, method, method.Attributes, methodReturnType, methodParameters, sil, aspectAttributes.Union(fieldAspects).ToList(), parameterAspects, methodContext);
+            var methodReturnType = method.IsConstructor ? method.DeclaringType.Module.TypeSystem.Void : method.ReturnType;
 
-            InvokeClonedMethod(il, local, clonedMethod, isStatic, parameterOffset, parameters);
+            InvokeCopyMethod(il, local, copy, isStatic, parameterOffset, parameters.ToList());
 
             if (local != null)
             {
                 if (returnUsed && methodContext != null)
                 {
-                    il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Ldloc, local);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, local);
                     if (methodReturnType.IsValueType || methodReturnType.IsGenericParameter)
                     {
-                        il.Emit(OpCodes.Box, methodReturnType);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Box, methodReturnType);
                     }
 
-                    il.Emit(OpCodes.Callvirt, MethodContextReturns.GetSetMethod());
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextReturns.GetSetMethod());
                 }
             }
 
@@ -825,17 +657,17 @@ namespace RAspect
                     continue;
                 }
 
-                il.Emit(OpCodes.Ldsfld, fields[aspectType.FullName]);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, fieldWrappers[aspectType.FullName]);
                 if (methodContext != null)
                 {
-                    il.Emit(OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldnull);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
                 }
 
-                il.Emit(OpCodes.Callvirt, AspectSuccess);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, AspectSuccess);
             }
 
             if (local != null)
@@ -843,20 +675,20 @@ namespace RAspect
                 if (returnUsed && methodContext != null)
                 {
                     var aspectNoReturnLabel = il.DefineLabel();
-                    var localType = local.LocalType;
+                    var localType = local.VariableType;
 
-                    il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
-                    il.Emit(OpCodes.Brfalse, aspectNoReturnLabel);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Brfalse, aspectNoReturnLabel);
 
-                    il.Emit(OpCodes.Ldloc, methodContext);
-                    il.Emit(OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextReturns.GetGetMethod());
                     if (localType.IsValueType)
-                        il.Emit(OpCodes.Unbox_Any, localType);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Unbox_Any, localType);
                     else
-                        il.Emit(OpCodes.Isinst, localType); 
-                    
-                    il.Emit(OpCodes.Stloc, local);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Isinst, localType);
+
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, local);
 
                     il.MarkLabel(aspectNoReturnLabel);
                 }
@@ -864,9 +696,9 @@ namespace RAspect
 
             if (needTryCatch)
             {
-                il.BeginCatchBlock(ex.LocalType);
+                il.BeginCatchBlock(ex.VariableType);
 
-                il.Emit(OpCodes.Stloc, ex);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, ex);
             }
 
             for (var i = 0; needTryCatch && i < aspectTypes.Count; i++)
@@ -879,23 +711,23 @@ namespace RAspect
                     continue;
                 }
 
-                il.Emit(OpCodes.Ldsfld, fields[aspectType.FullName]);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, fieldWrappers[aspectType.FullName]);
                 if (methodContext != null)
                 {
-                    il.Emit(OpCodes.Ldloc, methodContext);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Ldnull);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
                 }
 
-                il.Emit(OpCodes.Ldloc, ex);
-                il.Emit(OpCodes.Callvirt, AspectException);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, ex);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, AspectException);
             }
 
             if (needTryCatch)
             {
-                il.Emit(OpCodes.Rethrow);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Rethrow);
 
                 il.BeginFinallyBlock();
 
@@ -909,57 +741,57 @@ namespace RAspect
                         continue;
                     }
 
-                    il.Emit(OpCodes.Ldsfld, fields[aspectType.FullName]);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, fieldWrappers[aspectType.FullName]);
                     if (methodContext != null)
                     {
-                        il.Emit(OpCodes.Ldloc, methodContext);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
                     }
                     else
                     {
-                        il.Emit(OpCodes.Ldnull);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
                     }
 
-                    il.Emit(OpCodes.Callvirt, AspectExit);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, AspectExit);
                 }
 
                 il.EndExceptionBlock();
             }
 
-            if (continueUsed)
+            if (proceedUsed)
             {
-                il.Emit(OpCodes.Br, notContinueLabel);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Br, notProceedLabel);
 
-                il.MarkLabel(continueLabel);
+                il.MarkLabel(proceedLabel);
 
                 if (local != null)
                 {
-                    var localType = local.LocalType;
+                    var localType = local.VariableType;
                     if (localType.IsValueType)
                     {
-                        il.Emit(OpCodes.Ldloca, local);
-                        il.Emit(OpCodes.Initobj, localType);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Ldloca, local);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Initobj, localType);
                     }
                     else
                     {
                         if (localType.IsGenericParameter)
                         {
-                            il.Emit(OpCodes.Call, GetDefaultValueMethod.MakeGenericMethod(localType));
+                            il.Emit(Mono.Cecil.Cil.OpCodes.Call, GetDefaultValueMethod.MakeGenericMethod(localType.ReflectionType()));
                         }
                         else
                         {
-                            il.Emit(OpCodes.Ldnull);
+                            il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
                         }
 
-                        il.Emit(OpCodes.Stloc, local);
+                        il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, local);
                     }
                 }
 
-                il.MarkLabel(notContinueLabel);
+                il.MarkLabel(notProceedLabel);
             }
         }
 
         /// <summary>
-        /// Invoke original cloned method
+        /// Invoke original copied method
         /// </summary>
         /// <param name="il">IL Generator</param>
         /// <param name="local">Local for return type methods</param>
@@ -967,35 +799,58 @@ namespace RAspect
         /// <param name="isStatic">Is Static</param>
         /// <param name="parameterOffset">Parameter Offses</param>
         /// <param name="parameters">Parameters</param>
-        private static void InvokeClonedMethod(ILGenerator il, LocalBuilder local, MethodBuilder clonedMethod, bool isStatic, int parameterOffset, ParameterInfo[] parameters)
+        private static void InvokeCopyMethod(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.Cil.VariableDefinition local, Mono.Cecil.MethodReference clonedMethod, bool isStatic, int parameterOffset, List<Mono.Cecil.ParameterDefinition> parameters)
         {
             if (!isStatic)
             {
-                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
             }
 
-            for (var i = 0; i < parameters.Length; i++)
+            for (var i = 0; i < parameters.Count; i++)
             {
-                il.Emit(OpCodes.Ldarg, i + parameterOffset);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg, i + parameterOffset);
             }
 
-            il.Emit(OpCodes.Callvirt, clonedMethod);
+            if (clonedMethod.GenericParameters.Any() || clonedMethod.ContainsGenericParameter)
+            {
+                var genericParameters = clonedMethod.GenericParameters;
+                var methodDeclaringType = clonedMethod.DeclaringType;
+
+                if (methodDeclaringType.GenericParameters.Any())
+                {
+                    var genericType = methodDeclaringType.MakeGenericInstanceType(methodDeclaringType.GenericParameters.ToArray());
+                    var hasThis = clonedMethod.HasThis;
+                    var convention = clonedMethod.CallingConvention;
+                    clonedMethod = new Mono.Cecil.MethodReference(clonedMethod.Name, clonedMethod.ReturnType, genericType);
+                    clonedMethod.CallingConvention = convention;
+                    clonedMethod.HasThis = hasThis;
+
+                    foreach(var parameter in parameters)
+                    {
+                        clonedMethod.Parameters.Add(parameter);
+                    }
+
+                    foreach (var genParam in genericParameters)
+                    {
+                        clonedMethod.GenericParameters.Add(new Mono.Cecil.GenericParameter(genParam.Name, clonedMethod));
+                    }
+                }
+
+                var genericMethod = (Mono.Cecil.GenericInstanceMethod)(
+                    clonedMethod = new Mono.Cecil.GenericInstanceMethod(clonedMethod));
+                
+                foreach (var generic in genericParameters)
+                {
+                    genericMethod.GenericArguments.Add(generic);
+                }
+            }
+
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, clonedMethod);
 
             if (local != null)
             {
-                il.Emit(OpCodes.Stloc, local);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, local);
             }
-        }
-
-        /// <summary>
-        /// Return true if system defined
-        /// </summary>
-        /// <param name="type">Type</param>
-        /// <returns>Bool</returns>
-        private static bool IsSystemDefined(this Type type)
-        {
-            return type.Namespace.StartsWith("system", StringComparison.OrdinalIgnoreCase) ||
-                type.Module.ScopeName == "CommonLanguageRuntimeLibrary";
         }
 
         /// <summary>
@@ -1003,7 +858,7 @@ namespace RAspect
         /// </summary>
         /// <param name="method"></param>
         /// <returns>List{Attribute}</returns>
-        internal static List<Attribute> GetMethodAttributes(MethodBase method)
+        public static List<Attribute> GetMethodAttributes(MethodBase method)
         {
             var declaringType = method.DeclaringType;
 
@@ -1015,6 +870,7 @@ namespace RAspect
 
             var propInfo = isProperty ? declaringType.GetProperty(newMethodName, NonPublicBinding) : null;
 
+            //TODO: Union Assembly Attribute applicable to method
             return (isProperty ? propInfo.GetCustomAttributes<Attribute>() :
                 method.GetCustomAttributes<Attribute>()).ToList();
         }
@@ -1025,7 +881,7 @@ namespace RAspect
         /// <param name="field">Field</param>
         /// <param name="aspect">Aspect</param>
         /// <returns></returns>
-        internal static bool IsValidAspectFor(FieldInfo field, AspectBase aspect, bool allowEvents = false)
+        internal static bool IsValidAspectFor(Mono.Cecil.FieldDefinition field, AspectBase aspect, bool allowEvents = false)
         {
             var fieldName = field.Name;
 
@@ -1037,7 +893,7 @@ namespace RAspect
 
             if (isEvent && !allowEvents || !((aspect.Target & WeaveTargetType.Fields) == WeaveTargetType.Fields))
                 return false;
-            
+
             return IsValidAspectFor(aspect, fieldName, declaringType, fieldName, field.IsPublic);
         }
 
@@ -1047,7 +903,7 @@ namespace RAspect
         /// <param name="method">Method</param>
         /// <param name="aspect">Aspect</param>
         /// <returns></returns>
-        internal static bool IsValidAspectFor(MethodBase method, AspectBase aspect)
+        internal static bool IsValidAspectFor(Mono.Cecil.MethodDefinition method, AspectBase aspect)
         {
             var methodName = method.Name;
 
@@ -1072,7 +928,7 @@ namespace RAspect
 
             return IsValidAspectFor(aspect, methodName, declaringType, searchName, isPublic);
         }
-
+        
         /// <summary>
         /// Determine if aspect should be applied to the given context
         /// </summary>
@@ -1082,7 +938,7 @@ namespace RAspect
         /// <param name="searchName">Search Name</param>
         /// <param name="isPublic">Is Public</param>
         /// <returns></returns>
-        private static bool IsValidAspectFor(AspectBase aspect, string originalName, Type declaringType, string searchName, bool isPublic)
+        private static bool IsValidAspectFor(AspectBase aspect, string originalName, Mono.Cecil.TypeDefinition declaringType, string searchName, bool isPublic)
         {
             var fullName = declaringType.FullName;
 
@@ -1102,11 +958,12 @@ namespace RAspect
 
             if (!string.IsNullOrWhiteSpace(searchMemberPattern))
             {
-                if (!Regex.IsMatch(originalName, searchMemberPattern) && !Regex.IsMatch(searchName, searchMemberPattern))
+                var searchRegex = searchMemberPattern.ToRegex();
+                if (!searchRegex.IsMatch(originalName) && !searchRegex.IsMatch(searchName))
                     return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(searchTypePattern) && !Regex.IsMatch(fullName, searchTypePattern))
+            if (!string.IsNullOrWhiteSpace(searchTypePattern) && !searchTypePattern.ToRegex().IsMatch(fullName))
             {
                 return false;
             }
@@ -1117,65 +974,248 @@ namespace RAspect
         /// <summary>
         /// Modify type methods to include registered weaved method code
         /// </summary>
-        /// <param name="classType">Class Type</param>
-        /// <returns>Type</returns>
-        private static Type WeaveType(Type classType)
+        /// <param name="classType">Type</param>
+        /// <param name="asmAttrs">Assembly Attribute</param>
+        /// <param name="aspectBaseType">Aspect Type</param>
+        /// <param name="type">Static Type</param>
+        /// <param name="sil">Static IL Processor</param>
+        private static void WeaveType(Mono.Cecil.TypeDefinition classType, IEnumerable<AspectBase> asmAttrs, Mono.Cecil.TypeDefinition type, Mono.Cecil.Cil.ILProcessor sil)
         {
+            if (classType.IsSubClassOf(typeof(AspectBase).ToCecil()) || 
+                classType.Name.IndexOf("<module>", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return;
+            }
+
+            var module = classType.Module;
+            var typeSystem = module.TypeSystem;
+
             var name = classType.FullName;
 
-            var asmAspects = classType.Assembly.GetCustomAttributes<AspectBase>();
-            
+            var asmAspects = asmAttrs;
+
             var typeAspects = GetValidAspects(classType, asmAspects);
-
-            var type = moduleBuilder.DefineType(name, TypeAttributes.Public | TypeAttributes.Serializable | TypeAttributes.Sealed, typeof(object));
             
-            var sctor = type.DefineConstructor(MethodAttributes.Static | MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);
-
-            var sil = sctor.GetILGenerator();
-
             var fieldAspects = classType.GetFields(NonPublicBinding).Select(x => new { Field = x, Aspects = typeAspects.Where(a => IsValidAspectFor(x, a)) })
                 .Where(x => x.Aspects.Any())
                 .SelectMany(x => x.Field.GetCustomAttributes<AspectBase>().Where(y => !y.Exclude).Union(x.Aspects)).Distinct().ToList();
 
-            var methods = classType.GetMethods(NonPublicBinding).Where(x => x.DeclaringType != typeof(object) && x.DeclaringType == classType);
+            var methods = classType.GetMethods(NonPublicBinding).Where(x => !x.DeclaringType.FullName.Equals(typeof(object).ToCecil().FullName) 
+                && x.DeclaringType.FullName == classType.FullName).ToList();
 
             //Validate aspect for given type
             foreach (var typeAspect in typeAspects)
                 typeAspect.ValidateRules(classType, methods);
 
-            var ctors = classType.GetConstructors(NonPublicBinding);
-
-            var list = new List<MethodBase>();
+            var ctors = classType.GetConstructors(NonPublicBinding).ToList();
             
             // Define Methods
-            foreach (MethodBase method in methods)
+            foreach (var method in methods)
             {
-                DefineWeaveMethod(classType, typeAspects, type, sil, fieldAspects, list, method);
+                DefineWeaveMethod(classType, typeAspects, type, sil, fieldAspects, method);
             }
 
             // Define Constructors
-            //foreach (var ctor in ctors)
-            //{
-                //DefineWeaveMethod(classType, typeAspects, type, sil, fieldAspects, list, ctor);
-            //}
-
-            // Define default ctor is not already defined
-            if (!list.Any(x => x.IsConstructor && !x.GetParameters().Any()))
-                type.DefineDefaultConstructor(MethodAttributes.Public);
-            
-            sil.Emit(OpCodes.Ret);
-
-            var returnType = type.CreateType();
-
-            foreach (var item in list)
+            foreach (var ctor in ctors)
             {
-                var newMethod = GetWeavedMethod(returnType, item, useTemp: false);
+                DefineWeaveMethod(classType, typeAspects, type, sil, fieldAspects, ctor);
+            }
+        }
 
-                if (newMethod != null)
-                    item.SwapWith(newMethod);
+        /// <summary>
+        /// Make copy of defined method
+        /// </summary>
+        /// <param name="method">Method to clone</param>
+        /// <param name="methodContext">Method Context</param>
+        /// <param name="aspects">Aspects</param>
+        /// <returns></returns>
+        private static Mono.Cecil.MethodDefinition CopyMethod(Mono.Cecil.MethodDefinition method, List<AspectBase> aspects)
+        {
+            var type = method.DeclaringType;
+            var key = string.Format("{0}_{1}_{2}", method.Name, method.ReturnType.FullName, string.Join(",", method.Parameters.Select(x => x.ParameterType.FullName)));
+
+            var meth = DefinedMethodDefs[key] = new Mono.Cecil.MethodDefinition(method.Name + "~", method.Attributes, method.ReturnType);
+            meth.HasThis = method.HasThis;
+            meth.CallingConvention = method.CallingConvention;
+            meth.ExplicitThis = method.ExplicitThis;
+
+            var body = meth.Body;
+            var oldBody = method.Body;
+            var il = body.GetILProcessor();
+
+            var instructions = oldBody.Instructions;
+            var count = instructions.Count;
+            var startIndex = 0;
+
+            foreach (var param in method.Parameters)
+            {
+                meth.Parameters.Add(new Mono.Cecil.ParameterDefinition(param.Name, param.Attributes, param.ParameterType));
             }
 
-            return returnType;
+
+            foreach (var generic in method.GenericParameters)
+            {
+                var genParam = new Mono.Cecil.GenericParameter(generic.Name, meth);
+                genParam.Attributes = generic.Attributes;
+                generic.Constraints.ToList().ForEach(gp => genParam.Constraints.Add(gp));
+                generic.CustomAttributes.ToList().ForEach(ca => genParam.CustomAttributes.Add(ca));
+                generic.GenericParameters.ToList().ForEach(gp => genParam.GenericParameters.Add(new Mono.Cecil.GenericParameter(gp.Name, meth)));
+                genParam.HasDefaultConstructorConstraint = generic.HasDefaultConstructorConstraint;
+                genParam.IsContravariant = generic.IsContravariant;
+                genParam.IsCovariant = generic.IsCovariant;
+                genParam.IsNonVariant = generic.IsNonVariant;
+                meth.GenericParameters.Add(genParam);
+            }
+
+            foreach (var variable in method.Body.Variables)
+            {
+                meth.Body.Variables.Add(variable);
+            }
+
+            foreach (var attribute in method.CustomAttributes)
+            {
+                meth.CustomAttributes.Add(attribute);
+            }
+
+            var methodDeclaringType = method.DeclaringType;
+            var isConstructor = method.IsConstructor && !methodDeclaringType.IsSequentialLayout && methodDeclaringType.IsClass;
+
+            if (isConstructor)
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    var instruction = instructions[i];
+                    var data = (instruction.Operand as Mono.Cecil.MethodReference)?.Resolve();
+                    if (instruction.OpCode == Mono.Cecil.Cil.OpCodes.Call && data != null && data.IsConstructor)
+                    {
+                        startIndex = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            instructions = new Mono.Collections.Generic.Collection<Mono.Cecil.Cil.Instruction>(instructions.Skip(startIndex).ToList());
+
+            Mono.Cecil.FieldDefinition eventField = null;
+
+            foreach (var instruction in instructions)
+            {
+                var data = instruction.Operand;
+                var dataField = (data as Mono.Cecil.FieldReference)?.Resolve();
+                var dataMethod = (data as Mono.Cecil.MethodReference)?.Resolve();
+                var getter = dataField != null && instruction.OpCode.Name.StartsWith("ld", StringComparison.OrdinalIgnoreCase);
+
+                if (dataField != null && dataField.FieldType.IsSubClassOf(typeof(Delegate).ToCecil()))
+                {
+                    eventField = dataField;
+                }
+
+                if (dataField != null)
+                {
+                    var instructionValue = instruction.OpCode.Value;
+                    var dataFieldType = dataField.FieldType;
+                    if (getter)
+                    {
+                        var isAddressLoad = instructionValue == OpCodes.Ldflda.Value;
+                        var adrLocal = isAddressLoad ? il.DeclareLocal(dataFieldType) : null;
+
+                        il.Append(instruction);
+                        WeaveField(il, aspects, dataField, getter);
+
+                        if (isAddressLoad)
+                        {
+                            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, adrLocal);
+                            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloca, adrLocal);
+                        }
+                    }
+                    else
+                    {
+                        WeaveField(il, aspects, dataField, getter);
+                        il.Append(instruction);
+                    }
+                }else if(dataMethod != null)
+                {
+                    WeaveEventInvoke(il, aspects, dataMethod, eventField);
+                    var successes = new List<bool>();
+                    foreach (var aspect in aspects)
+                    {
+                        var invoke = aspect.OnMethodCall;
+                        if (invoke != null)
+                        {
+                            successes.Add(invoke(type, il, meth, dataMethod));
+                        }
+                    }
+
+                    if (!successes.Any(x => x))
+                    {
+                        il.Append(instruction);
+                    }
+                }
+                else
+                {
+                    il.Append(instruction);
+                }
+            }
+
+            foreach (var handler in oldBody.ExceptionHandlers)
+            {
+                body.ExceptionHandlers.Add(handler);
+            }
+
+            body.InitLocals = true;
+            body.OptimizeMacros();
+
+            methodDeclaringType.Methods.Add(meth);
+
+            return meth;
+        }
+
+        /// <summary>
+        /// Weave event invoke
+        /// </summary>
+        /// <param name="il">IL Generator</param>
+        /// <param name="aspects">Aspects</param>
+        /// <param name="methodContext">Method Context</param>
+        /// <param name="method">Method</param>
+        /// <param name="field">Field</param>
+        private static void WeaveEventInvoke(Mono.Cecil.Cil.ILProcessor il, List<AspectBase> aspects, Mono.Cecil.MethodDefinition method, Mono.Cecil.FieldDefinition field)
+        {
+            var isEventInvoke = method.Name.Equals("Invoke") && method.DeclaringType.IsSubClassOf(method.DeclaringType.Module.Import(typeof(Delegate)));
+
+            if (isEventInvoke)
+            {
+                foreach (var aspect in aspects)
+                {
+                    var del = aspect.OnBlockInvokeEvent;
+                    if (del != null)
+                    {
+                        del(il, method, field);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Weave Field for aspect
+        /// </summary>
+        /// <param name="il">IL Generator</param>
+        /// <param name="aspects">Aspects</param>
+        /// <param name="field">Field</param>
+        /// <param name="getter">Is Getter Operation</param>
+        /// <param name="methodContext">Method Context</param>
+        private static void WeaveField(Mono.Cecil.Cil.ILProcessor il, List<AspectBase> aspects, Mono.Cecil.FieldDefinition field, bool getter)
+        {
+            if (field == null)
+                return;
+
+            foreach (var aspect in aspects)
+            {
+                var del = getter ? aspect.OnBlockGetField : aspect.OnBlockSetField;
+                if (del != null)
+                {
+                    del(il, field);
+                }
+            }
         }
 
         /// <summary>
@@ -1186,14 +1226,17 @@ namespace RAspect
         /// <param name="type">Type</param>
         /// <param name="sil">Static ILGenerator</param>
         /// <param name="fieldAspects">Field Aspects</param>
-        /// <param name="list">Method Bases</param>
         /// <param name="method">Method</param>
-        private static void DefineWeaveMethod(Type classType, List<AspectBase> typeAspects, TypeBuilder type, ILGenerator sil, List<AspectBase> fieldAspects, List<MethodBase> list, MethodBase method)
+        private static void DefineWeaveMethod(Mono.Cecil.TypeDefinition classType, List<AspectBase> typeAspects, Mono.Cecil.TypeDefinition type, Mono.Cecil.Cil.ILProcessor sil, List<AspectBase> fieldAspects, Mono.Cecil.MethodDefinition method)
         {
-            var isConstructor = method.IsConstructor;
+            var module = classType.Module;
+            var typeSystem = module.TypeSystem;
+
+            var methodDeclaringType = method.DeclaringType;
+            var isConstructor = method.IsConstructor && !methodDeclaringType.IsSequentialLayout && methodDeclaringType.IsClass;
             var methodName = method.Name;
 
-            var parameters = method.GetParameters();
+            var parameters = method.Parameters;
 
             var isProperty = methodName.StartsWith("get_") || methodName.StartsWith("set_");
 
@@ -1217,15 +1260,14 @@ namespace RAspect
 
             var shouldOverride =
                 (aspectAttrs.Any() || typeAspects.Any() || parameterAspects.Any() || fieldAspects.Any()) &&
-                !method.IsGenericMethod &&
-                !method.DeclaringType.IsSystemDefined();
+                !method.IsGenericInstance;
 
             if (!shouldOverride)
             {
                 return;
             }
 
-            var aspectTypes = new List<Type>();
+            var aspectTypes = new List<Mono.Cecil.TypeReference>();
 
             var methAspects = new List<AspectBase>();
 
@@ -1234,25 +1276,26 @@ namespace RAspect
                 if (IsValidAspectFor(method, typeAspect))
                 {
                     methAspects.Add(typeAspect);
-                    aspectTypes.Add(typeAspect.GetType());
+                    aspectTypes.Add(typeAspect.GetType().ToCecil());
                 }
             }
 
             foreach (var methAspect in aspectAttrs)
             {
                 var aspectType = methAspect.GetType();
-                var aspectIndex = aspectTypes.IndexOf(aspectType);
+                var aspectTypeRef = aspectType.ToCecil();
+                var aspectIndex = aspectTypes.IndexOf(aspectTypeRef);
                 if (aspectIndex < 0)
                 {
                     methAspects.Add(methAspect);
-                    aspectTypes.Add(aspectType);
+                    aspectTypes.Add(aspectTypeRef);
                 }
             }
 
             var analysises = aspectTypes.Select(x => GetCachedILAnalysis(x)).ToList();
 
             var hasAdditionalAspects = parameterAspects.Any() || fieldAspects.Any() ||
-                methAspects.Any(x => x.OnBeginAspectBlock != null || x.OnEndAspectBlock != null);
+                methAspects.Any(x => x.OnBeginBlock != null || x.OnEndBlock != null);
 
             var allEmptyMethods = analysises.All(x => x.EmptyExceptionMethod && x.EmptyExitMethod && x.EmptyInterceptMethod && x.EmptySuccessMethod)
                 && !hasAdditionalAspects;
@@ -1262,64 +1305,109 @@ namespace RAspect
                 return;
             }
 
-            var methodReturnType = isConstructor ? typeof(void) : (method as MethodInfo).ReturnType;
+            var methodReturnType = isConstructor ? typeSystem.Void : method.ReturnType;
 
-            var isVoid = methodReturnType == typeof(void);
+            var isVoid = methodReturnType.FullName == typeSystem.Void.FullName;
 
             var methodParameters = parameters.Select(p => p.ParameterType).ToArray();
 
             var isStatic = method.IsStatic;
 
-            var methodInfoField = type.DefineField(string.Concat("__<info>_", method.Name, counter++), typeof(MethodBase), FieldAttributes.Static | FieldAttributes.Private);
-            var methodAttrField = type.DefineField(string.Concat("__<attr>_", method.Name, counter++), typeof(List<Attribute>), FieldAttributes.Static | FieldAttributes.Private);
+            var methodInfoField = type.DefineField(string.Concat("__<info>_", method.Name, counter++), typeof(MethodBase), Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Public);
+            var methodAttrField = type.DefineField(string.Concat("__<attr>_", method.Name, counter++), typeof(List<Attribute>), Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Public);
 
-            if (isConstructor)
-                sil.Emit(OpCodes.Ldtoken, method as ConstructorInfo);
-            else
-                sil.Emit(OpCodes.Ldtoken, method as MethodInfo);
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, method);
+            
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, methodInfoField);
 
-            sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
-            sil.Emit(OpCodes.Stsfld, methodInfoField);
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, method);
+            
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Call, GetMethodAttributesMethod);
+            sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, methodAttrField);
 
-            if (isConstructor)
-                sil.Emit(OpCodes.Ldtoken, method as ConstructorInfo);
-            else
-                sil.Emit(OpCodes.Ldtoken, method as MethodInfo);
+            var body = method.Body;
+            var instructions = body.Instructions;
+            var count = instructions.Count;
+            var newBody = new Mono.Cecil.Cil.MethodBody(method);
+            var il = newBody.GetILProcessor();
+            var variables = body.Variables;
+            var marked = new Dictionary<int, Mono.Cecil.Cil.VariableDefinition>();
 
-            sil.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
-            sil.Emit(OpCodes.Call, GetMethodAttributesMethod);
-            sil.Emit(OpCodes.Stsfld, methodAttrField);
+            var copy = CopyMethod(method, methAspects);
 
-            var meth = isConstructor ? 
-                (MethodBase)type.DefineConstructor(method.Attributes, method.CallingConvention, methodParameters)
-                : type.DefineMethod(methodName, method.Attributes, method.CallingConvention, methodReturnType, methodParameters);
-
-            if (!isConstructor)
-                MakeMethodGenericIfNeeded(method, meth as MethodBuilder);
-
-            var il = isConstructor ? (meth as ConstructorBuilder).GetILGenerator() :
-                (meth as MethodBuilder).GetILGenerator();
+            method.CustomAttributes.Clear();
 
             if (isConstructor)
             {
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Call, ObjectCtor);
+                for (var i = 0; i < count; i++)
+                {
+                    var instruction = instructions[i];
+                    var data = (instruction.Operand as Mono.Cecil.MethodReference)?.Resolve();
+                    var varDef = instruction.Operand as Mono.Cecil.Cil.VariableReference;
+                    var token = instruction.OpCode.ToString();
+
+                    if (token.IndexOf("stloc", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        var index = Int32.Parse(token.Split('.')[1]);
+                        marked[index] = variables[index];
+                    }else if(varDef != null)
+                    {
+                        marked[varDef.Index] = varDef.Resolve();
+                    }
+
+                    if (instruction.OpCode == Mono.Cecil.Cil.OpCodes.Call && data != null && data.IsConstructor)
+                    {
+                        il.Append(instruction);
+                        break;
+                    }
+                    il.Append(instruction);
+                }
             }
 
-            var local = !isVoid ? il.DeclareLocal(methodReturnType) : null;
+            variables.Clear();
 
-            WeaveMethod(type, method, methAspects, il, local, methodInfoField, methodAttrField, sil, aspectTypes, parameterAspects, methodParameters, fieldAspects);
+            foreach(var variable in marked.OrderBy(x => x.Key).Select(x => x.Value).ToList())
+            {
+                newBody.Variables.Add(new Mono.Cecil.Cil.VariableDefinition(variable.Name, variable.VariableType));
+            }
+
+            
+            var local = !isVoid ? il.DeclareLocal(methodReturnType) : null;
+            
+            WeaveMethod(type, method, methAspects, il, local, methodInfoField, methodAttrField, sil, aspectTypes, parameterAspects, methodParameters, fieldAspects, copy);
+
+            for (var i = 0; i < parameterAspects.Count; i++)
+            {
+                var aspect = parameterAspects[i];
+                var parameter = parameters[i];
+                var endBlock = aspect.OnEndBlock;
+                if (endBlock != null)
+                {
+                    endBlock(methodDeclaringType, method, parameter, il);
+                }
+            }
+
+            foreach (var aspect in methAspects)
+            {
+                var endBlock = aspect.OnEndBlock;
+                if (endBlock != null)
+                {
+                    endBlock(methodDeclaringType, method, null, il);
+                }
+            }
 
             if (local != null)
             {
-                il.Emit(OpCodes.Ldloc, local);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, local);
             }
 
-            il.Emit(OpCodes.Ret);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ret);
 
-            list.Add(method);
+            method.Body = newBody;
         }
-
+        
         /// <summary>
         /// Get method already defined for a given type builder
         /// </summary>
@@ -1328,195 +1416,17 @@ namespace RAspect
         /// <param name="returnType">ReturnType</param>
         /// <param name="parameterTypes">ParameterTypes</param>
         /// <returns></returns>
-        internal static MethodBuilder GetMethodEx(this TypeBuilder typeBuilder, string name, Type returnType, Type[] parameterTypes)
+        internal static Mono.Cecil.MethodDefinition GetMethodEx(this Mono.Cecil.TypeDefinition typeBuilder, string name, Mono.Cecil.TypeReference returnType, Mono.Cecil.TypeReference[] parameterTypes)
         {
             var key = string.Format("{0}_{1}_{2}", name, returnType.FullName, string.Join(",", parameterTypes.Select(x => x.FullName)));
-            MethodBuilder method;
+            Mono.Cecil.MethodDefinition method;
 
-            if(DefinedMethods.TryGetValue(key, out method))
+            if (DefinedMethodDefs.TryGetValue(key, out method))
             {
                 return method;
             }
 
             return method;
-        }
-
-        /// <summary>
-        /// Define method and track defined method
-        /// </summary>
-        /// <param name="typeBuilder">TypeBuilder</param>
-        /// <param name="name">Name</param>
-        /// <param name="attributes">Attributes</param>
-        /// <param name="callingConvention">CallingConvention</param>
-        /// <param name="returnType">ReturnType</param>
-        /// <param name="parameterTypes">ParameterTypes</param>
-        /// <returns></returns>
-        internal static MethodBuilder DefineMethodEx(this TypeBuilder typeBuilder, string name, MethodAttributes attributes, CallingConventions callingConvention, Type returnType, Type[] parameterTypes)
-        {
-            var key = string.Format("{0}_{1}_{2}", name, returnType.FullName, string.Join(",", parameterTypes.Select(x => x.FullName)));
-            return DefinedMethods[key] = typeBuilder.DefineMethod(name, attributes, callingConvention, returnType, parameterTypes);
-        }
-
-        /// <summary>
-        /// Generate Replacement Method for debug mode
-        /// </summary>
-        /// <param name="type">TypeBuilder</param>
-        /// <param name="method">MethodInfo</param>
-        /// <param name="methAttr">Method Attribute</param>
-        /// <param name="methodReturnType">Method Return Type</param>
-        /// <param name="methodParameters">Method Parameters</param>
-        /// <param name="sil">Static ILGenerator</param>
-        /// <param name="aspects">Aspects</param>
-        /// <param name="parameterAspects">Parameters Aspects</param>
-        /// <param name="methodContext">Method Context</param>
-        /// <returns>MethodBuilder</returns>
-        private static MethodBuilder GenerateReplacementMethod(TypeBuilder type, MethodBase method, MethodAttributes methAttr, Type methodReturnType, Type[] methodParameters, ILGenerator sil, List<AspectBase> aspects, List<AspectBase> parameterAspects, LocalBuilder methodContext)
-        {
-            var meth = type.DefineMethodEx(string.Concat(method.Name, "_"), methAttr, method.CallingConvention, methodReturnType, methodParameters);
-            var parameters = method.GetParameters();
-            MakeMethodGenericIfNeeded(method, meth);
-
-            foreach(var customAttr in method.CustomAttributes)
-            {
-                var fields = customAttr.NamedArguments.Where(x => x.IsField);
-                var properties = customAttr.NamedArguments.Where(x => !x.IsField);
-                if (!fields.Any() && !properties.Any())
-                    meth.SetCustomAttribute(new CustomAttributeBuilder(customAttr.Constructor, customAttr.ConstructorArguments.Select(x => x.Value).ToArray()));
-                else if (fields.Any())
-                    meth.SetCustomAttribute(new CustomAttributeBuilder(customAttr.Constructor, 
-                        customAttr.ConstructorArguments.Select(x => x.Value).ToArray(), 
-                        fields.Select(x => (FieldInfo)x.MemberInfo).ToArray(),
-                        fields.Select(x => x.TypedValue.Value).ToArray()));
-                else if (properties.Any())
-                    meth.SetCustomAttribute(new CustomAttributeBuilder(customAttr.Constructor, 
-                        customAttr.ConstructorArguments.Select(x => x.Value).ToArray(), 
-                        properties.Select(x => (PropertyInfo)x.MemberInfo).ToArray(),
-                        properties.Select(x => x.TypedValue.Value).ToArray()));
-            }
-
-            meth.SetImplementationFlags(method.MethodImplementationFlags);
-
-            var il = meth.GetILGenerator();
-
-            try
-            {
-                for(var i = 0; i < parameterAspects.Count; i++)
-                {
-                    var aspect = parameterAspects[i];
-                    var parameter = parameters[i];
-                    var beginBlock = aspect.OnBeginAspectBlock;
-                    if (beginBlock != null)
-                    {
-                        beginBlock(type, method, parameter, il);
-                    }
-                }
-
-                foreach(var aspect in aspects)
-                {
-                    var beginBlock = aspect.OnBeginAspectBlock;
-                    if (beginBlock != null)
-                    {
-                        beginBlock(type, method, null, il);
-                    }
-                }
-
-                ILWeaverUtil.CopyIL(type, method, il, type.Module, aspects, methodContext, sil);
-
-                for (var i = 0; i < parameterAspects.Count; i++)
-                {
-                    var aspect = parameterAspects[i];
-                    var parameter = parameters[i];
-                    var endBlock = aspect.OnEndAspectBlock;
-                    if (endBlock != null)
-                    {
-                        endBlock(type, method, parameter, il);
-                    }
-                }
-
-                foreach (var aspect in aspects)
-                {
-                    var endBlock = aspect.OnEndAspectBlock;
-                    if (endBlock != null)
-                    {
-                        endBlock(type, method, null, il);
-                    }
-                }
-                il.Emit(OpCodes.Ret);
-            }
-            catch (Exception ex)
-            {
-                throw new ApplicationException(string.Format("Error weaving methods for {0}.{1}", method.DeclaringType.FullName, method.Name), ex);
-            }
-
-            return meth;
-        }
-
-        /// <summary>
-        /// Return defined weaved method
-        /// </summary>
-        /// <param name="returnType">Type containing methods</param>
-        /// <param name="item">MethodInfo for metadata</param>
-        /// <param name="useTemp">Use Temporary weaved method</param>
-        /// <returns>MethodInfo</returns>
-        private static MethodBase GetWeavedMethod(Type returnType, MethodBase item, bool useTemp)
-        {
-            MethodBase newMethod = null;
-            var itemParameters = item.GetParameters();
-            var itemName = item.Name + (useTemp ? "_" : string.Empty);
-            if (item.IsGenericMethod)
-            {
-                newMethod = (item.IsConstructor ? 
-                    returnType.GetConstructors(NonPublicBinding).Cast<MethodBase>() 
-                    : returnType.GetMethods(NonPublicBinding)).FirstOrDefault(x => x.Name == itemName &&
-                 x.IsGenericMethod && x.GetParameters().All(p => itemParameters.Any(y => y.ParameterType.Name == p.ParameterType.Name)));
-                if (newMethod == null)
-                {
-                    newMethod = returnType.GetMethod(itemName);
-                }
-            }
-            else
-            {
-                newMethod = item.IsConstructor ? 
-                    (MethodBase)returnType.GetConstructor(NonPublicBinding & ~BindingFlags.Static, null, itemParameters.Select(x => x.ParameterType).ToArray(), null)
-                    : returnType.GetMethod(itemName, NonPublicBinding, null, itemParameters.Select(x => x.ParameterType).ToArray(), null);
-            }
-
-            return newMethod;
-        }
-
-        /// <summary>
-        /// Add Generic properties to current method builder if needed
-        /// </summary>
-        /// <param name="method">Method</param>
-        /// <param name="meth">MethodBuilder</param>
-        private static void MakeMethodGenericIfNeeded(MethodBase method, MethodBuilder meth)
-        {
-            if (!method.IsGenericMethod)
-                return;
-            
-            var genericParameters = method.GetGenericArguments();
-            var generics = meth.DefineGenericParameters(genericParameters.Select(x => x.Name).ToArray());
-
-            for (var i = 0; i < generics.Length; i++)
-            {
-                generics[i].SetGenericParameterAttributes(genericParameters[i].GenericParameterAttributes);
-
-                var constraints = genericParameters[i].GetGenericParameterConstraints();
-                var interfaces = new List<Type>(constraints.Length);
-                foreach (var constraint in constraints)
-                {
-                    if (constraint.IsClass)
-                    {
-                        generics[i].SetBaseTypeConstraint(constraint);
-                    }
-                    else
-                    {
-                        interfaces.Add(constraint);
-                    }
-                }
-
-                generics[i].SetInterfaceConstraints(interfaces.ToArray());
-            }
         }
     }
 }

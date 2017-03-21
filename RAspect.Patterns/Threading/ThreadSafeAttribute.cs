@@ -36,30 +36,24 @@ namespace RAspect.Patterns.Threading
         private readonly static ConcurrentDictionary<object, object> LockObjects = new ConcurrentDictionary<object, object>();
 
         /// <summary>
-        /// Local Builder for return value
+        /// Local Builder for monitor.enter
         /// </summary>
         [ThreadStatic]
-        private static LocalBuilder exLocal;
+        private static Mono.Cecil.Cil.VariableDefinition lockWasTokenLocal;
 
         /// <summary>
         /// Local Builder for monitor.enter
         /// </summary>
         [ThreadStatic]
-        private static LocalBuilder lockWasTokenLocal;
-
-        /// <summary>
-        /// Local Builder for monitor.enter
-        /// </summary>
-        [ThreadStatic]
-        private static LocalBuilder tempLocal;
+        private static Mono.Cecil.Cil.VariableDefinition tempLocal;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ThreadSafeAttribute"/> class.
         /// </summary>
         public ThreadSafeAttribute()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
-            OnEndAspectBlock = EndAspectBlock;
+            OnBeginBlock = BeginBlock;
+            OnEndBlock = EndBlock;
         }
 
         /// <summary>
@@ -78,7 +72,7 @@ namespace RAspect.Patterns.Threading
         /// </summary>
         /// <param name="instance">Instance</param>
         /// <returns></returns>
-        internal static object GetLockObject(object instance)
+        public static object GetLockObject(object instance)
         {
             if(instance != null)
             {
@@ -95,22 +89,20 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
-            var meth = method as MethodInfo;
-            var returnType = meth.ReturnType;
-            exLocal = returnType != typeof(void) ? il.DeclareLocal(returnType) : null;
+            var meth = method;
             lockWasTokenLocal = il.DeclareLocal(typeof(bool));
             tempLocal = il.DeclareLocal(typeof(object));
 
-            il.Emit(method.IsStatic ? OpCodes.Ldnull : OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Call, GetLockObjectMethod);
-            il.Emit(OpCodes.Stloc, tempLocal);
+            il.Emit(method.IsStatic ? Mono.Cecil.Cil.OpCodes.Ldnull : Mono.Cecil.Cil.OpCodes.Ldarg_0);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, GetLockObjectMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, tempLocal);
 
             il.BeginExceptionBlock();
-            il.Emit(OpCodes.Ldloc, tempLocal);
-            il.Emit(OpCodes.Ldloca, lockWasTokenLocal);
-            il.Emit(OpCodes.Call, EnterMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, tempLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloca, lockWasTokenLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, EnterMethod);
         }
 
         /// <summary>
@@ -120,27 +112,21 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void EndAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void EndBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
-            if (exLocal != null)
-                il.Emit(OpCodes.Stloc, exLocal);
-
             il.BeginFinallyBlock();
 
             var takenLabel = il.DefineLabel();
 
-            il.Emit(OpCodes.Ldloc, lockWasTokenLocal);
-            il.Emit(OpCodes.Brfalse, takenLabel);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, lockWasTokenLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Brfalse, takenLabel);
 
-            il.Emit(OpCodes.Ldloc, tempLocal);
-            il.Emit(OpCodes.Call, ExitMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, tempLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, ExitMethod);
 
             il.MarkLabel(takenLabel);
 
             il.EndExceptionBlock();
-
-            if (exLocal != null)
-                il.Emit(OpCodes.Ldloc, exLocal);
         }
     }
 }

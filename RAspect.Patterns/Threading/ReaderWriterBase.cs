@@ -35,26 +35,20 @@ namespace RAspect.Patterns.Threading
         /// Object references for representing static
         /// </summary>
         private readonly static object StaticInstance = new object();
-
-        /// <summary>
-        /// Local Builder for return value
-        /// </summary>
-        [ThreadStatic]
-        private static LocalBuilder local;
-
+        
         /// <summary>
         /// Local Builder for lock value
         /// </summary>
         [ThreadStatic]
-        private static LocalBuilder @lock;
+        private static Mono.Cecil.Cil.VariableDefinition @lock;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReaderWriterBase"/> class.
         /// </summary>
         public ReaderWriterBase()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
-            OnEndAspectBlock = EndAspectBlock;
+            OnBeginBlock = BeginBlock;
+            OnEndBlock = EndBlock;
         }
 
         /// <summary>
@@ -78,7 +72,7 @@ namespace RAspect.Patterns.Threading
             }
         }
 
-        internal static Thread.ReaderWriterLockSlim GetLock(object instance)
+        public static Thread.ReaderWriterLockSlim GetLock(object instance)
         {
             Thread.ReaderWriterLockSlim @lock;
 
@@ -92,7 +86,7 @@ namespace RAspect.Patterns.Threading
             return @lock;
         }
 
-        internal static void Dispose(object instance)
+        public static void Dispose(object instance)
         {
             Thread.ReaderWriterLockSlim @lock;
 
@@ -113,20 +107,19 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
-            var meth = method as MethodInfo;
-            var returnType = meth.ReturnType;
-            local = returnType != typeof(void) ? il.DeclareLocal(returnType) : null;
+            var meth = method;
+            var returnType = meth.ReturnType.ReflectionType();
             @lock = il.DeclareLocal(typeof(Thread.ReaderWriterLockSlim));
 
-            il.Emit(method.IsStatic ? OpCodes.Ldnull : OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Call, GetLockMethod);
-            il.Emit(OpCodes.Stloc, @lock);
+            il.Emit(method.IsStatic ? Mono.Cecil.Cil.OpCodes.Ldnull : Mono.Cecil.Cil.OpCodes.Ldarg_0);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, GetLockMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, @lock);
 
             il.BeginExceptionBlock();
-            il.Emit(OpCodes.Ldloc, @lock);
-            il.Emit(OpCodes.Callvirt, EnterMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, @lock);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, EnterMethod);
         }
 
         /// <summary>
@@ -136,20 +129,14 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void EndAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void EndBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
-            if (local != null)
-                il.Emit(OpCodes.Stloc, local);
-
             il.BeginFinallyBlock();
             
-            il.Emit(OpCodes.Ldloc, @lock);
-            il.Emit(OpCodes.Callvirt, ExitMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, @lock);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, ExitMethod);
             
             il.EndExceptionBlock();
-
-            if (local != null)
-                il.Emit(OpCodes.Ldloc, local);
         }
     }
 }

@@ -34,7 +34,8 @@ namespace RAspect.Aspects
         /// Capture exception
         /// </summary>
         /// <param name="context">MethodContext</param>
-        public abstract void OnException(MethodContext context);
+        [EntryPointAttribute(EntryPointType.Error)]
+        protected abstract void OnException(MethodContext context);
 
         /// <summary>
         /// Gets weave block type

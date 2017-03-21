@@ -37,6 +37,5 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("RAspect.Aspects")]
 [assembly: InternalsVisibleTo("RAspect.Contracts")]
 [assembly: InternalsVisibleTo("RAspect.Patterns")]
-[assembly: InternalsVisibleTo(RAspect.ILWeaver.ASM_NAME)]
 [assembly: InternalsVisibleTo("RAspect.Tests")]
 [assembly: InternalsVisibleTo("RAspect.Compiler")]

@@ -19,8 +19,8 @@ namespace RAspect.Patterns
         /// </summary>
         public TailAttribute()
         {
-            OnAspectMethodCall = AspectMethodCall;
-            OnBeginAspectBlock = BeginAspectBlock;
+            OnMethodCall = MethodCall;
+            OnBeginBlock = BeginBlock;
         }
 
         /// <summary>
@@ -42,21 +42,22 @@ namespace RAspect.Patterns
         /// <param name="method"></param>
         /// <param name="replaceMethod">Replace Method</param>
         /// <returns></returns>
-        internal bool AspectMethodCall(TypeBuilder typeBuilder, ILGenerator il, MethodBase method, MethodBase replaceMethod)
+        internal bool MethodCall(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.MethodDefinition method, Mono.Cecil.MethodDefinition replaceMethod)
         {
-            var isRecursive = method == replaceMethod;
+            var methodName = method.Name.Replace("~", string.Empty);
+            var isRecursive = methodName == replaceMethod.Name;
             var declaringType = replaceMethod.DeclaringType;
-            var methodCall = replaceMethod as MethodInfo;
+            var methodCall = replaceMethod;
             if (isRecursive)
             {
-                methodCall = typeBuilder.GetMethodEx(methodCall.Name + "_", methodCall.ReturnType, methodCall.GetParameters().Select(x => x.ParameterType).ToArray());
-                il.Emit(OpCodes.Tailcall);
+                methodCall = typeBuilder.GetMethodEx(methodCall.Name, methodCall.ReturnType, methodCall.Parameters.Select(x => x.ParameterType).ToArray());
+                il.Emit(Mono.Cecil.Cil.OpCodes.Tail);
             }
 
-            il.Emit(declaringType.IsValueType || replaceMethod.IsStatic || methodCall.ReturnType.IsValueType ? OpCodes.Call : OpCodes.Callvirt, 
+            il.Emit(declaringType.IsValueType || replaceMethod.IsStatic || methodCall.ReturnType.IsValueType ? Mono.Cecil.Cil.OpCodes.Call : Mono.Cecil.Cil.OpCodes.Callvirt, 
                 methodCall);
 
-            il.Emit(OpCodes.Ret);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ret);
 
             return true;
         }
@@ -69,7 +70,7 @@ namespace RAspect.Patterns
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
         }
     }

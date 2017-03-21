@@ -20,7 +20,7 @@ namespace RAspect.Patterns.Threading
         /// </summary>
         public ImmutableAttribute()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
+            OnBeginBlock = BeginBlock;
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
             var methodName = method.Name;
             var isSetProperty = methodName.StartsWith("set_") && !method.IsStatic;
@@ -51,9 +51,9 @@ namespace RAspect.Patterns.Threading
                 return;
             }
 
-            il.Emit(OpCodes.Ldstr, methodName.Substring(4));
-            il.Emit(OpCodes.Newobj, typeof(ObjectReadOnlyException).GetConstructor(new[] { typeof(string) }));
-            il.Emit(OpCodes.Throw);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, methodName.Substring(4));
+            il.Emit(Mono.Cecil.Cil.OpCodes.Newobj, typeof(ObjectReadOnlyException).GetConstructor(new[] { typeof(string) }));
+            il.Emit(Mono.Cecil.Cil.OpCodes.Throw);
         }
     }
 }

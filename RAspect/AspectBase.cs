@@ -60,51 +60,52 @@ namespace RAspect
         /// </summary>
         /// <param name="type">Type</param>
         /// <param name="methods">Type Methods</param>
-        internal virtual void ValidateRules(Type type, IEnumerable<MethodInfo> methods)
+        internal virtual void ValidateRules(Mono.Cecil.TypeDefinition type, IEnumerable<Mono.Cecil.MethodDefinition> methods)
         {
         }
 
         /// <summary>
         /// Gets or sets aspect code to inject at beginning of weaved method
         /// </summary>
-        internal Action<TypeBuilder, MethodBase, ParameterInfo, ILGenerator> OnBeginAspectBlock { get; set; }
+        internal Action<Mono.Cecil.TypeDefinition, Mono.Cecil.MethodDefinition, Mono.Cecil.ParameterDefinition, Mono.Cecil.Cil.ILProcessor> OnBeginBlock { get; set; }
 
         /// <summary>
         /// Gets or sets aspect code to inject at end of weaved method
         /// </summary>
-        internal Action<TypeBuilder, MethodBase, ParameterInfo, ILGenerator> OnEndAspectBlock { get; set; }
-
-
+        internal Action<Mono.Cecil.TypeDefinition, Mono.Cecil.MethodDefinition, Mono.Cecil.ParameterDefinition, Mono.Cecil.Cil.ILProcessor> OnEndBlock { get; set; }
+        
         /// <summary>
         /// Gets or sets aspect code to inject in weaved method for setting fields
         /// </summary>
-        internal Action<ILGenerator, FieldInfo, LocalBuilder> OnAspectBlockSetField { get; set; }
-
+        internal Action<Mono.Cecil.Cil.ILProcessor, Mono.Cecil.FieldDefinition> OnBlockSetField { get; set; }
+        
         /// <summary>
         /// Gets or sets aspect code to inject in weaved method for getting fields
         /// </summary>
-        internal Action<ILGenerator, FieldInfo, LocalBuilder> OnAspectBlockGetField { get; set; }
-
+        internal Action<Mono.Cecil.Cil.ILProcessor, Mono.Cecil.FieldDefinition> OnBlockGetField { get; set; }
+        
         /// <summary>
         /// Gets or sets aspect code to inject in weaved method for invoking events/delegates
         /// </summary>
-        internal Action<ILGenerator, MethodBase, FieldInfo, LocalBuilder> OnAspectBlockInvokeEvent { get; set; }
-
+        internal Action<Mono.Cecil.Cil.ILProcessor, Mono.Cecil.MethodDefinition, Mono.Cecil.FieldDefinition> OnBlockInvokeEvent { get; set; }
+        
         /// <summary>
         /// Gets or sets aspect code to use for substitution of method calls in a given aspect code
         /// </summary>
-        internal Func<TypeBuilder, ILGenerator, MethodBase, MethodBase, bool> OnAspectMethodCall { get; set; }
+        internal Func<Mono.Cecil.TypeDefinition, Mono.Cecil.Cil.ILProcessor, Mono.Cecil.MethodDefinition, Mono.Cecil.MethodDefinition, bool> OnMethodCall { get; set; }
 
         /// <summary>
         /// Method that will be called prior to execute of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
+        [EntryPointAttribute(EntryPointType.Enter)]
         internal virtual void OnEntry(MethodContext context) { }
 
         /// <summary>
         /// Method that will be called prior to exiting of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
+        [EntryPointAttribute(EntryPointType.Exit)]
         internal virtual void OnExit(MethodContext context)
         {
         }
@@ -113,6 +114,7 @@ namespace RAspect
         /// Method that will be called after success of weaved methods
         /// </summary>
         /// <param name="context">MethodContext</param>
+        [EntryPointAttribute(EntryPointType.Success)]
         internal virtual void OnSuccess(MethodContext context)
         {
         }
@@ -122,6 +124,7 @@ namespace RAspect
         /// </summary>
         /// <param name="context">MethodContext</param>
         /// <param name="ex">Exception that occurred while executing weaved method</param>
+        [EntryPointAttribute(EntryPointType.Error)]
         internal virtual void OnException(MethodContext context, Exception ex)
         {
         }

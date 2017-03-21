@@ -5,9 +5,11 @@ using RAspect.Tests.Patterns;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using Mono.Cecil.Rocks;
 
 namespace RAspect.Tests.Patterns
 {
@@ -16,16 +18,6 @@ namespace RAspect.Tests.Patterns
     /// </summary>
     public class PatternTest
     {
-        static PatternTest()
-        {
-            ILWeaver.Weave<FrozenObject>();
-            ILWeaver.Weave<PatternModel>();
-            ILWeaver.Weave<ImmutableObject>();
-            ILWeaver.Weave<ReaderWriterObject>();
-            ILWeaver.Weave<LoggingObject>();
-            //ILWeaver.SaveAssembly();
-        }
-
         private ITestOutputHelper output = null;
         public PatternTest(ITestOutputHelper output)
         {
@@ -37,13 +29,6 @@ namespace RAspect.Tests.Patterns
         {
             var model = new PatternModel();
             model.CreateException();
-        }
-
-        [Fact]
-        public void ShouldFailWeaveForReaderWriterUnSync()
-        {
-            Assert.Throws<ThreadingValidationException>(() =>
-                ILWeaver.Weave<ReaderWriterUnSyncObject>());
         }
 
         [Fact]
@@ -95,11 +80,59 @@ namespace RAspect.Tests.Patterns
         }
 
         [Fact]
+        public void WillThrowExceptionIfInstanceIsUsedInDifferentThread()
+        {
+            var obj = new PatternModel();
+            Exception ex = null;
+
+            obj.AllowOnlyOneThreadForInstance();
+
+            Task.Run(() => {
+                try
+                {
+                    obj.AllowOnlyOneThreadForInstance();
+                }
+                catch(Exception e)
+                {
+                    ex = e;
+                }
+            }).Wait();
+
+            Assert.NotNull(ex);
+        }
+
+        [Fact]
+        public void WillThrowExceptionIfMultipleThreadCallsOneMethod()
+        {
+            var obj = new PatternModel();
+            var reset = new ManualResetEvent(false);
+
+            var exCount = 0;
+
+            Task.Run(() => {
+                obj.AllowsOnlyOneThread(reset);
+            });
+
+            try
+            {
+                obj.AllowsOnlyOneThread(reset);
+            }
+            catch(Exception)
+            {
+                exCount++;
+                reset.Set();
+            }
+            
+            Assert.True(exCount > 0);
+        }
+
+        [Fact]
         public void WillNotThrowExceptionDueToUnSafeThread()
         {
             int expected = 10;
             var model = new PatternModel(output);
             var count = 0;
+            model.TestGeneric(100, 300);
             Task.WaitAll(ExecuteOnThreads(expected, () => model.NumberThreadUnSafe(ref count)));
             Assert.Equal(expected, count);
         }

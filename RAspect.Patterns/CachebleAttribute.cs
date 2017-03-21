@@ -18,7 +18,7 @@ namespace RAspect.Patterns
         /// </summary>
         public CachebleAttribute()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
+            OnBeginBlock = BeginBlock;
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace RAspect.Patterns
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
         }
     }

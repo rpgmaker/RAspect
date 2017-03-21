@@ -60,7 +60,7 @@ namespace RAspect.Aspects
         /// <summary>
         /// Gets or sets a value indicating whether flag to indicate continuation of code execution
         /// </summary>
-        public bool Continue { get; set; } = true;
+        public bool Proceed { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating whether member is a property or field

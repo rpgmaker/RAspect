@@ -32,7 +32,7 @@ namespace RAspect.Aspects
         /// </summary>
         public ContractAspect() : base(WeaveTargetType.Parameters | WeaveTargetType.Properties)
         {
-            OnBeginAspectBlock = BeginAspectBlock;
+            OnBeginBlock = BeginBlock;
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace RAspect.Aspects
         /// <param name="isParameter">Flag indicating if value is from a parameter</param>
         /// <param name="contract">Contract</param>
         /// <returns>Exception</returns>
-        internal Exception Validate(object value, string name, bool isParameter, ContractAspect contract)
+        public Exception Validate(object value, string name, bool isParameter, ContractAspect contract)
         {
             return ValidateContract(value, name, isParameter, contract);
         }
@@ -91,7 +91,7 @@ namespace RAspect.Aspects
         /// <param name="method">Method</param>
         /// <param name="parameterOffset">Parameter Offset</param>
         /// <returns>ContractAspect</returns>
-        static internal ContractAspect GetParameterContractAspect(MethodInfo method, int parameterOffset)
+        public static ContractAspect GetParameterContractAspect(MethodInfo method, int parameterOffset)
         {
             var key = string.Concat(method.DeclaringType.FullName, method.Name, parameterOffset);
             ContractAspect contractAspect = null;
@@ -111,41 +111,41 @@ namespace RAspect.Aspects
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
             var aspectType = this.GetType();
             var hasExLabel = il.DefineLabel();
             var exceptionLocal = il.DeclareLocal(typeof(Exception));
             var offset = method.IsStatic ? 0 : 1;
 
-            var paraMethod = parameter.Member as MethodInfo;
+            var paraMethod = method;
             var parameterDeclaringType = paraMethod.DeclaringType;
             var aspect = parameter.GetCustomAttribute(aspectType);
 
             if (aspect == null)
                 return;
 
-            var aspectField = ILWeaver.TypeAspects[parameterDeclaringType.FullName][aspectType.FullName];
+            var aspectField = ILWeaver.TypeFieldAspects[parameterDeclaringType.FullName][aspectType.FullName];
 
-            il.Emit(OpCodes.Ldsfld, aspectField);
-            il.Emit(OpCodes.Ldarg, parameter.Position + offset);
-            il.Emit(OpCodes.Ldstr, parameter.Name);
-            il.Emit(OpCodes.Ldc_I4_1);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, aspectField);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg, parameter.Index + offset);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, parameter.Name);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4_1);
 
-            il.Emit(OpCodes.Ldtoken, paraMethod);
-            il.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
-            il.Emit(OpCodes.Isinst, typeof(MethodInfo));
-            il.Emit(OpCodes.Ldc_I4, parameter.Position);
-            il.Emit(OpCodes.Call, GetParameterContractAspectMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, paraMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            il.Emit(Mono.Cecil.Cil.OpCodes.Isinst, typeof(MethodInfo));
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, parameter.Index);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, GetParameterContractAspectMethod);
 
-            il.Emit(OpCodes.Callvirt, ValidateContractMethod);
-            il.Emit(OpCodes.Stloc, exceptionLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, ValidateContractMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, exceptionLocal);
 
-            il.Emit(OpCodes.Ldloc, exceptionLocal);
-            il.Emit(OpCodes.Brfalse, hasExLabel);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, exceptionLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Brfalse, hasExLabel);
 
-            il.Emit(OpCodes.Ldloc, exceptionLocal);
-            il.Emit(OpCodes.Throw);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, exceptionLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Throw);
 
             il.MarkLabel(hasExLabel);
         }

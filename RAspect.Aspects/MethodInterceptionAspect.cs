@@ -25,11 +25,6 @@ namespace RAspect.Aspects
         /// <param name="context">MethodContext</param>
         internal override void OnEntry(MethodContext context)
         {
-            context.Returns = null;
-        }
-
-        internal override void OnExit(MethodContext context)
-        {
             OnInvoke(context);
         }
 
@@ -37,6 +32,7 @@ namespace RAspect.Aspects
         /// Capture method Invocation
         /// </summary>
         /// <param name="context">MethodContext</param>
+        [EntryPointAttribute(EntryPointType.Enter)]
         public abstract void OnInvoke(MethodContext context);
 
         /// <summary>

@@ -24,13 +24,13 @@ namespace RAspect.Aspects
         /// </summary>
         /// <param name="instance">Instance</param>
         /// <param name="handler">Handler</param>
-        /// <param name="continue">Continue Flag</param>
+        /// <param name="proceed">Proceed Flag</param>
         /// <param name="arguments">Arguments</param>
-        public EventContext(object instance, object handler, bool @continue, object[] arguments)
+        public EventContext(object instance, object handler, bool @proceed, object[] arguments)
         {
             Instance = instance;
             Handler = handler;
-            Continue = @continue;
+            Proceed = @proceed;
             Arguments = arguments;
         }
         
@@ -57,7 +57,7 @@ namespace RAspect.Aspects
         /// <summary>
         /// Gets or sets a value indicating whether flag to indicate continuation of code execution
         /// </summary>
-        public bool Continue { get; set; } = true;
+        public bool Proceed { get; set; } = true;
 
         /// <summary>
         /// Gets or sets argument for event handler when invoked

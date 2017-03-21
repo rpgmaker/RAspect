@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect", "RAspect\RAspect.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Aspects", "RAspect.Aspects\RAspect.Aspects.csproj", "{3F2DE547-B414-4B24-BE0E-7879E8604B5B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Console", "RAspect.Console\RAspect.Console.csproj", "{620C23AE-960A-492C-AA10-554DB5D26469}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Contracts", "RAspect.Contracts\RAspect.Contracts.csproj", "{6CF48DD0-D908-482F-8272-FAB5B21277D4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAspect.Analyzers", "RAspect.Analyzers\RAspect.Analyzers\RAspect.Analyzers.csproj", "{0F81D5C6-EBE4-4470-8AD4-F7D1DBB615D6}"
@@ -41,10 +39,6 @@ Global
 		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F2DE547-B414-4B24-BE0E-7879E8604B5B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{620C23AE-960A-492C-AA10-554DB5D26469}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{620C23AE-960A-492C-AA10-554DB5D26469}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{620C23AE-960A-492C-AA10-554DB5D26469}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{620C23AE-960A-492C-AA10-554DB5D26469}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6CF48DD0-D908-482F-8272-FAB5B21277D4}.Release|Any CPU.ActiveCfg = Release|Any CPU

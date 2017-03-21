@@ -39,8 +39,8 @@ namespace RAspect.Aspects
         /// </summary>
         public MemberInterceptionAspect() : base(WeaveTargetType.Properties | WeaveTargetType.Fields)
         {
-            OnAspectBlockSetField = AspectBlockSetField;
-            OnAspectBlockGetField = AspectBlockGetField;
+            OnBlockSetField = BlockSetField;
+            OnBlockGetField = BlockGetField;
         }
 
         /// <summary>
@@ -60,13 +60,13 @@ namespace RAspect.Aspects
                 Instance = context.Instance,
                 LocationName = name,
                 Value = context.Returns,
-                Continue = context.Continue,
+                Proceed = context.Proceed,
                 IsProperty = true
             };
 
             OnEnter(memberContext);
 
-            context.Continue = memberContext.Continue;
+            context.Proceed = memberContext.Proceed;
         }
 
         /// <summary>
@@ -136,10 +136,9 @@ namespace RAspect.Aspects
         /// </summary>
         /// <param name="il">IL Generator</param>
         /// <param name="field">Field</param>
-        /// <param name="methodContext">Method Context</param>
-        private void AspectBlockSetField(ILGenerator il, FieldInfo field, LocalBuilder methodContext)
+        private void BlockSetField(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.FieldDefinition field)
         {
-            AspectBlockField(il, field, methodContext, SetValueMethod);
+            BlockField(il, field, SetValueMethod);
         }
 
         /// <summary>
@@ -147,10 +146,9 @@ namespace RAspect.Aspects
         /// </summary>
         /// <param name="il">IL Generator</param>
         /// <param name="field">Field</param>
-        /// <param name="methodContext">Method Context</param>
-        private void AspectBlockGetField(ILGenerator il, FieldInfo field, LocalBuilder methodContext)
+        private void BlockGetField(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.FieldDefinition field)
         {
-            AspectBlockField(il, field, methodContext, GetValueMethod);
+            BlockField(il, field, GetValueMethod);
         }
 
         /// <summary>
@@ -158,9 +156,8 @@ namespace RAspect.Aspects
         /// </summary>
         /// <param name="il">IL Generator</param>
         /// <param name="field">Field</param>
-        /// <param name="methodContext">Method Context</param>
         /// <param name="fieldMethod">Field Method</param>
-        private void AspectBlockField(ILGenerator il, FieldInfo field, LocalBuilder methodContext, MethodInfo fieldMethod)
+        private void BlockField(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.FieldDefinition field, MethodInfo fieldMethod)
         {
             var fieldName = field.Name;
 
@@ -169,7 +166,7 @@ namespace RAspect.Aspects
                 return;
 
             var aspect = field.GetCustomAttribute<MemberInterceptionAspect>() ?? field.DeclaringType.GetCustomAttribute<MemberInterceptionAspect>()
-                ?? field.DeclaringType.Assembly.GetCustomAttribute<MemberInterceptionAspect>();
+                ?? field.DeclaringType.Module.Assembly.GetCustomAttribute<MemberInterceptionAspect>();
 
             if (!ILWeaver.IsValidAspectFor(field, aspect))
                 return;
@@ -178,32 +175,32 @@ namespace RAspect.Aspects
             var isStatic = field.IsStatic;
             var fieldLocal = il.DeclareLocal(fieldType);
             var memberLocal = il.DeclareLocal(typeof(MemberContext));
-            var aspectField = ILWeaver.TypeAspects[field.DeclaringType.FullName][aspect.GetType().FullName];
+            var aspectField = ILWeaver.TypeFieldAspects[field.DeclaringType.FullName][aspect.GetType().FullName];
 
             // Store current get field value
-            il.Emit(OpCodes.Stloc, fieldLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, fieldLocal);
 
             // MemberContext(object instance, string locationName, object value)
-            il.Emit(isStatic ? OpCodes.Ldnull : OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Ldstr, fieldName);
-            il.Emit(OpCodes.Ldloc, fieldLocal);
+            il.Emit(isStatic ? Mono.Cecil.Cil.OpCodes.Ldnull : Mono.Cecil.Cil.OpCodes.Ldarg_0);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, fieldName);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, fieldLocal);
 
             if (fieldType.IsValueType)
-                il.Emit(OpCodes.Box, fieldType);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Box, fieldType);
 
-            il.Emit(OpCodes.Newobj, MemberContextCtor);
-            il.Emit(OpCodes.Stloc, memberLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Newobj, MemberContextCtor);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, memberLocal);
 
-            il.Emit(OpCodes.Ldsfld, aspectField);
-            il.Emit(OpCodes.Ldloc, memberLocal);
-            il.Emit(OpCodes.Callvirt, fieldMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, aspectField);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, memberLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, fieldMethod);
 
             // Load value back to stack and reflect changes if any
-            il.Emit(OpCodes.Ldloc, memberLocal);
-            il.Emit(OpCodes.Callvirt, MemberContextValueMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, memberLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MemberContextValueMethod);
 
             // Convert to expected type
-            il.Emit(fieldType.IsValueType ? OpCodes.Unbox_Any : OpCodes.Isinst, fieldType);
+            il.Emit(fieldType.IsValueType ? Mono.Cecil.Cil.OpCodes.Unbox_Any : Mono.Cecil.Cil.OpCodes.Isinst, fieldType);
         }
     }
 }

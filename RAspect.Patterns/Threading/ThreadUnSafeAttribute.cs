@@ -15,11 +15,18 @@ namespace RAspect.Patterns.Threading
     public class ThreadUnSafeAttribute : AspectBase
     {
         /// <summary>
+        /// Field thread safe counter
+        /// </summary>
+        [ThreadStatic]
+        private static Mono.Cecil.FieldDefinition field;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ThreadUnSafeAttribute"/> class.
         /// </summary>
         public ThreadUnSafeAttribute()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
+            OnBeginBlock = BeginBlock;
+            OnEndBlock = EndBlock;
         }
 
         /// <summary>
@@ -40,8 +47,40 @@ namespace RAspect.Patterns.Threading
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
+            field = method.DeclaringType.DefineField("<unsafe>_" + method.Name, typeof(int), 
+                Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Private);
+
+            var notZero = il.DefineLabel();
+
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, field);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Brfalse, notZero);
+
+            il.Emit(Mono.Cecil.Cil.OpCodes.Newobj, typeof(ConcurrentAccessException).GetConstructor(Type.EmptyTypes));
+            il.Emit(Mono.Cecil.Cil.OpCodes.Throw);
+
+            il.MarkLabel(notZero);
+
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, field);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4_1);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Add);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, field);
+        }
+
+        /// <summary>
+        /// Aspect code to inject at the end of weaved method
+        /// </summary>
+        /// <param name="typeBuilder">Type Builder</param>
+        /// <param name="method">Method</param>
+        /// <param name="parameter">Parameter</param>
+        /// <param name="il">ILGenerator</param>
+        internal void EndBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
+        {
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, field);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4_1);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Sub);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, field);
         }
     }
 }

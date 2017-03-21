@@ -10,11 +10,12 @@ namespace RAspect.Tests.Patterns
     [ImmutableAttribute]
     public class ImmutableObject
     {
+        private string name;
         public ImmutableObject(string name)
         {
-            Name = name;
+            this.name = name;
         }
 
-        public string Name { get; set; }
+        public string Name { get { return name; } set { name = value; } }
     }
 }

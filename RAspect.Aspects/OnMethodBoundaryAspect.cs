@@ -16,25 +16,29 @@ namespace RAspect.Aspects
         /// Capture on enter method execution
         /// </summary>
         /// <param name="context">MethodContext</param>
-        public virtual void OnEnter(MethodContext context) {}
+        [EntryPointAttribute(EntryPointType.Enter)]
+        protected virtual void OnEnter(MethodContext context) {}
 
         /// <summary>
         /// Capture on leave method
         /// </summary>
         /// <param name="context">MethodContext</param>
-        public virtual void OnLeave(MethodContext context) { }
+        [EntryPointAttribute(EntryPointType.Exit)]
+        protected virtual void OnLeave(MethodContext context) { }
 
         /// <summary>
         /// Capture on completion of method execution
         /// </summary>
         /// <param name="context">MethodContext</param>
-        public virtual void OnComplete(MethodContext context) { }
+        [EntryPointAttribute(EntryPointType.Success)]
+        protected virtual void OnComplete(MethodContext context) { }
 
         /// <summary>
         /// Capture on error of method execution
         /// </summary>
         /// <param name="context">MethodContext</param>
-        public virtual void OnError(MethodContext context) { }
+        [EntryPointAttribute(EntryPointType.Error)]
+        protected virtual void OnError(MethodContext context) { }
 
         /// <summary>
         /// Capture on entry method

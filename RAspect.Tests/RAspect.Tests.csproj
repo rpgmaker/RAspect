@@ -47,6 +47,46 @@
       <HintPath>..\packages\MSTest.TestFramework.1.0.5-preview\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Mono.Cecil, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil.Mdb, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Mdb.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil.Pdb, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Pdb.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil.Rocks, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Rocks.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RAspect, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RAspect.Aspects, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Aspects.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RAspect.Contracts, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Contracts.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RAspect.Patterns, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Patterns.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RAspect.Patterns.Logging.Log4Net, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Patterns.Logging.Log4Net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RAspect.Patterns.Logging.NLog, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Patterns.Logging.NLog.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="xunit.abstractions, Version=2.0.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
@@ -73,29 +113,12 @@
     <Compile Include="Patterns\PatternModel.cs" />
     <Compile Include="Patterns\PatternTest.cs" />
     <Compile Include="Patterns\ReaderWriterObject.cs" />
-    <Compile Include="Patterns\ReaderWriterUnSyncObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\RAspect.Aspects\RAspect.Aspects.csproj">
-      <Project>{3f2de547-b414-4b24-be0e-7879e8604b5b}</Project>
-      <Name>RAspect.Aspects</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RAspect.Contracts\RAspect.Contracts.csproj">
-      <Project>{6cf48dd0-d908-482f-8272-fab5b21277d4}</Project>
-      <Name>RAspect.Contracts</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RAspect.Patterns\RAspect.Patterns.csproj">
-      <Project>{19cefbfc-c5fb-485f-8eb0-4652716b1c0f}</Project>
-      <Name>RAspect.Patterns</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RAspect\RAspect.csproj">
-      <Project>{05d73b42-b7f9-407d-bb14-f4bc09ae226b}</Project>
-      <Name>RAspect</Name>
-    </ProjectReference>
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Aspects\" />
@@ -109,5 +132,12 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\MSTest.TestAdapter.1.1.4-preview\build\net45\MSTest.TestAdapter.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSTest.TestAdapter.1.1.4-preview\build\net45\MSTest.TestAdapter.props'))" />
     <Error Condition="!Exists('..\packages\xunit.runner.visualstudio.2.1.0\build\net20\xunit.runner.visualstudio.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\xunit.runner.visualstudio.2.1.0\build\net20\xunit.runner.visualstudio.props'))" />
+  </Target>
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <Target Name="RAspectAfterbuild" AfterTargets="AfterBuild">
+    <Exec Command="&quot;$(SolutionDir)packages\RAspect.1.0.0.0\tools\RAspect.compiler.exe&quot; &quot;$(TargetPath)&quot;" />
   </Target>
 </Project>

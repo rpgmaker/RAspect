@@ -29,7 +29,7 @@ namespace RAspect.Aspects
         /// </summary>
         public EventInterceptionAspect() : base(WeaveTargetType.Events | WeaveTargetType.Fields)
         {
-            OnAspectBlockInvokeEvent = AspectBlockInvokeEvent;
+            OnBlockInvokeEvent = BlockInvokeEvent;
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace RAspect.Aspects
             {
                 Instance = context.Instance,
                 Value = context.Arguments.FirstOrDefault().Value,
-                Continue = context.Continue
+                Proceed = context.Proceed
             };
 
             if (isAdd)
@@ -53,7 +53,7 @@ namespace RAspect.Aspects
             else
                 OnRemoveHandler(eventContext);
  
-            context.Continue = eventContext.Continue;
+            context.Proceed = eventContext.Proceed;
             context.Returns = eventContext.Value;
         }
 
@@ -92,28 +92,27 @@ namespace RAspect.Aspects
         /// <param name="il">IL Generator</param>
         /// <param name="method">Method</param>
         /// <param name="field">Field</param>
-        /// <param name="methodContext">Method Context</param>
-        private void AspectBlockInvokeEvent(ILGenerator il, MethodBase method, FieldInfo field, LocalBuilder methodContext)
+        private void BlockInvokeEvent(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.MethodDefinition method, Mono.Cecil.FieldDefinition field)
         {
             var isStatic = method.IsStatic;
             var eventContext = il.DeclareLocal(typeof(EventContext));
-            var locals = new List<LocalBuilder>();
+            var locals = new List<Mono.Cecil.Cil.VariableDefinition>();
             var objLocal = il.DeclareLocal(typeof(object[]));
-            var parameters = method.GetParameters();
-            var parameterLength = parameters.Length;
+            var parameters = method.Parameters;
+            var parameterLength = parameters.Count;
 
             var fieldDeclaringType = field.DeclaringType;
             var aspect = field.GetCustomAttribute<EventInterceptionAspect>() ?? fieldDeclaringType.GetCustomAttribute<EventInterceptionAspect>()
-                ?? fieldDeclaringType.Assembly.GetCustomAttribute<EventInterceptionAspect>();
+                ?? fieldDeclaringType.Module.Assembly.GetCustomAttribute<EventInterceptionAspect>();
 
             if (!ILWeaver.IsValidAspectFor(field, aspect, allowEvents: true))
                 return;
             
-            var aspectField = ILWeaver.TypeAspects[fieldDeclaringType.FullName][aspect.GetType().FullName];
+            var aspectField = ILWeaver.TypeFieldAspects[fieldDeclaringType.FullName][aspect.GetType().FullName];
 
-            il.Emit(OpCodes.Ldc_I4, parameterLength);
-            il.Emit(OpCodes.Newarr, typeof(object));
-            il.Emit(OpCodes.Stloc, objLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, parameterLength);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Newarr, typeof(object));
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, objLocal);
 
             for (var i = 0; i < parameterLength; i++)
             {
@@ -121,34 +120,34 @@ namespace RAspect.Aspects
                 var parameterType = parameter.ParameterType;
                 var local = il.DeclareLocal(parameterType);
 
-                il.Emit(OpCodes.Stloc, local);
-                il.Emit(OpCodes.Ldloc, objLocal);
-                il.Emit(OpCodes.Ldc_I4, parameterLength - i - 1);
-                il.Emit(OpCodes.Ldloc, local);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, local);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, objLocal);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, parameterLength - i - 1);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, local);
                 if (parameterType.IsValueType)
-                    il.Emit(OpCodes.Box, parameterType);
-                il.Emit(OpCodes.Stelem_Ref);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Box, parameterType);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Stelem_Ref);
 
                 locals.Add(local);
             }
 
             if (!isStatic)
-                il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Ldnull);
-            il.Emit(OpCodes.Ldc_I4, 1);
-            il.Emit(OpCodes.Ldloc, objLocal);
-            il.Emit(OpCodes.Newobj, EventContextCtor);
-            il.Emit(OpCodes.Stloc, eventContext);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldnull);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, 1);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, objLocal);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Newobj, EventContextCtor);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Stloc, eventContext);
 
             //InvokeEventMethod
-            il.Emit(OpCodes.Ldsfld, aspectField);
-            il.Emit(OpCodes.Ldloc, eventContext);
-            il.Emit(OpCodes.Callvirt, InvokeEventMethod);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, aspectField);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, eventContext);
+            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, InvokeEventMethod);
 
             //Restore original invoke event parameters
             //locals.Reverse();
             foreach (var local in locals)
-                il.Emit(OpCodes.Ldloc, local);
+                il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, local);
         }
     }
 }

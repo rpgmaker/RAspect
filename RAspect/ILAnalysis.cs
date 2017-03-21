@@ -16,9 +16,9 @@
         public bool ArgumentsUsed { get; set; }
 
         /// <summary>
-        /// Gets or sets whether continue property was used
+        /// Gets or sets whether proceed property was used
         /// </summary>
-        public bool ContinueUsed { get; set; }
+        public bool ProceedUsed { get; set; }
 
         /// <summary>
         /// Gets or sets whether instance property was used

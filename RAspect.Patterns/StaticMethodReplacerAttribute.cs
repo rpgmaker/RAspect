@@ -29,8 +29,8 @@ namespace RAspect.Patterns
         /// </summary>
         public StaticMethodReplacerAttribute()
         {
-            OnBeginAspectBlock = BeginAspectBlock;
-            OnAspectMethodCall = AspectMethodCall;
+            OnBeginBlock = BeginBlock;
+            OnMethodCall = MethodCall;
         }
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace RAspect.Patterns
         /// <param name="method"></param>
         /// <param name="replaceMethod">Replace Method</param>
         /// <returns></returns>
-        internal bool AspectMethodCall(TypeBuilder typeBuilder, ILGenerator il, MethodBase method, MethodBase replaceMethod)
+        internal bool MethodCall(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.MethodDefinition method, Mono.Cecil.MethodDefinition replaceMethod)
         {
             if (!replaceMethod.IsStatic)
                 return false;
@@ -65,10 +65,17 @@ namespace RAspect.Patterns
                 var smeth = staticType.GetMethod(replaceMethod.Name, BindingFlags.Static | BindingFlags.Public);
 
                 if (smeth != null)
+                {
                     meth = smeth;
+                }
             }
 
-            il.Emit(OpCodes.Call, meth);
+            if(meth == null)
+            {
+                return false;
+            }
+
+            il.Emit(Mono.Cecil.Cil.OpCodes.Call, meth);
 
             return true;
         }
@@ -80,7 +87,7 @@ namespace RAspect.Patterns
         /// <param name="method">Method</param>
         /// <param name="parameter">Parameter</param>
         /// <param name="il">ILGenerator</param>
-        internal void BeginAspectBlock(TypeBuilder typeBuilder, MethodBase method, ParameterInfo parameter, ILGenerator il)
+        internal void BeginBlock(Mono.Cecil.TypeDefinition typeBuilder, Mono.Cecil.MethodDefinition method, Mono.Cecil.ParameterDefinition parameter, Mono.Cecil.Cil.ILProcessor il)
         {
         }
     }

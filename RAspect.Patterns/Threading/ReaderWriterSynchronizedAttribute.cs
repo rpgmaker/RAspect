@@ -26,12 +26,12 @@ namespace RAspect.Patterns.Threading
         /// </summary>
         /// <param name="type">Type</param>
         /// <param name="methods">Type Methods</param>
-        internal override void ValidateRules(Type type, IEnumerable<MethodInfo> methods)
+        internal override void ValidateRules(Mono.Cecil.TypeDefinition type, IEnumerable<Mono.Cecil.MethodDefinition> methods)
         {
             var hasReader = methods.Any(x => x.GetCustomAttribute<ReaderAttribute>() != null);
             var hasWriter = methods.Any(x => x.GetCustomAttribute<WriterAttribute>() != null);
-
-            if(!(hasReader && hasWriter))
+            
+            if (!(hasReader && hasWriter))
             {
                 throw new ThreadingValidationException(String.Format("ReaderWriterSynchronize validation: {0} must have at least one reader and writer attribute for it members", type.FullName));
             }

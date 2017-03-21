@@ -18,7 +18,6 @@ namespace RAspect.Tests.Patterns
         {
             var value = rand.Next(0, Values.Count);
             Values.Add(value);
-            //Fix issue
             var v = Values.FirstOrDefault(x => x >= value * 2);
             return value;
         }
