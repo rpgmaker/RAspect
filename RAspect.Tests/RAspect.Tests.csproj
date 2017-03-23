@@ -107,6 +107,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contracts\ContractModel.cs" />
+    <Compile Include="Contracts\ContractTest.cs" />
     <Compile Include="Patterns\FrozenObject.cs" />
     <Compile Include="Patterns\ImmutableObject.cs" />
     <Compile Include="Patterns\LoggingObject.cs" />
@@ -122,7 +124,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Aspects\" />
-    <Folder Include="Contracts\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
