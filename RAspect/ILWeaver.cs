@@ -527,20 +527,27 @@ namespace RAspect
                     continue;
                 }
 
+                var parameterType = parameter.ParameterType;
+
                 sil.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, argumentsField);
                 sil.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, index);
                 sil.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, parameter.Name);
 
-                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, parameter.ParameterType.IsByReference ? 1 : 0);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, parameterType.IsByReference ? 1 : 0);
                 sil.Emit(Mono.Cecil.Cil.OpCodes.Newobj, module.Import(MethodParameterContextCtor));
                 sil.Emit(Mono.Cecil.Cil.OpCodes.Stelem_Ref);
 
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, argumentValues);
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4, index);
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg, i + parameterOffset);
-                if (parameter.ParameterType.IsValueType || parameter.ParameterType.IsGenericParameter)
+                if (parameterType.IsByReference)
                 {
-                    il.Emit(Mono.Cecil.Cil.OpCodes.Box, parameter.ParameterType);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldind_Ref);
+                }
+
+                if (parameterType.IsValueType || parameterType.IsGenericParameter)
+                {
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Box, parameterType);
                 }
 
                 //Capture parameter attribute
@@ -571,6 +578,12 @@ namespace RAspect
             {
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldloc, methodContext);
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
+                if (declaringType.IsValueType)
+                {
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Ldobj);
+                    il.Emit(Mono.Cecil.Cil.OpCodes.Box, declaringType);
+                }
+
                 il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, MethodContextInstance.GetSetMethod());
             }
 
@@ -801,6 +814,7 @@ namespace RAspect
         /// <param name="parameters">Parameters</param>
         private static void InvokeCopyMethod(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.Cil.VariableDefinition local, Mono.Cecil.MethodReference clonedMethod, bool isStatic, int parameterOffset, List<Mono.Cecil.ParameterDefinition> parameters)
         {
+            var isCall = isStatic || clonedMethod.DeclaringType.IsValueType;
             if (!isStatic)
             {
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
@@ -836,16 +850,19 @@ namespace RAspect
                     }
                 }
 
-                var genericMethod = (Mono.Cecil.GenericInstanceMethod)(
-                    clonedMethod = new Mono.Cecil.GenericInstanceMethod(clonedMethod));
-                
-                foreach (var generic in genericParameters)
+                if (genericParameters.Any())
                 {
-                    genericMethod.GenericArguments.Add(generic);
+                    var genericMethod = (Mono.Cecil.GenericInstanceMethod)(
+                        clonedMethod = new Mono.Cecil.GenericInstanceMethod(clonedMethod));
+
+                    foreach (var generic in genericParameters)
+                    {
+                        genericMethod.GenericArguments.Add(generic);
+                    }
                 }
             }
 
-            il.Emit(Mono.Cecil.Cil.OpCodes.Callvirt, clonedMethod);
+            il.Emit(isCall ? Mono.Cecil.Cil.OpCodes.Call : Mono.Cecil.Cil.OpCodes.Callvirt, clonedMethod);
 
             if (local != null)
             {
@@ -1034,7 +1051,10 @@ namespace RAspect
             var type = method.DeclaringType;
             var key = string.Format("{0}_{1}_{2}", method.Name, method.ReturnType.FullName, string.Join(",", method.Parameters.Select(x => x.ParameterType.FullName)));
 
-            var meth = DefinedMethodDefs[key] = new Mono.Cecil.MethodDefinition(method.Name + "~", method.Attributes, method.ReturnType);
+            var meth = DefinedMethodDefs[key] = new Mono.Cecil.MethodDefinition(method.Name + "~",
+                 method.IsStatic ? Mono.Cecil.MethodAttributes.Static | Mono.Cecil.MethodAttributes.Public :
+                Mono.Cecil.MethodAttributes.Public, 
+                method.ReturnType);
             meth.HasThis = method.HasThis;
             meth.CallingConvention = method.CallingConvention;
             meth.ExplicitThis = method.ExplicitThis;
@@ -1312,18 +1332,37 @@ namespace RAspect
             var methodParameters = parameters.Select(p => p.ParameterType).ToArray();
 
             var isStatic = method.IsStatic;
+            var declaringTypeGeneric = methodDeclaringType.HasGenericParameters;
 
             var methodInfoField = type.DefineField(string.Concat("__<info>_", method.Name, counter++), typeof(MethodBase), Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Public);
             var methodAttrField = type.DefineField(string.Concat("__<attr>_", method.Name, counter++), typeof(List<Attribute>), Mono.Cecil.FieldAttributes.Static | Mono.Cecil.FieldAttributes.Public);
 
             sil.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, method);
-            
-            sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+
+            if (declaringTypeGeneric)
+            {
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, methodDeclaringType);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) }));
+            }
+            else
+            {
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            }
+
             sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, methodInfoField);
 
             sil.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, method);
-            
-            sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+
+            if (declaringTypeGeneric)
+            {
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Ldtoken, methodDeclaringType);
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) }));
+            }
+            else
+            {
+                sil.Emit(Mono.Cecil.Cil.OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+            }
+
             sil.Emit(Mono.Cecil.Cil.OpCodes.Call, GetMethodAttributesMethod);
             sil.Emit(Mono.Cecil.Cil.OpCodes.Stsfld, methodAttrField);
 

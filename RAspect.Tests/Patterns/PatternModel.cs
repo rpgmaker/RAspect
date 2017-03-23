@@ -34,26 +34,6 @@ namespace RAspect.Tests.Patterns
         }
     }
 
-    public class PatternModelGeneric<T> where T : class
-    {
-        [ThreadSafe]
-        public T TestGeneric<T2>(T value, T2 value2)
-        {
-            return default(T);
-        }
-
-        [ThreadSafe]
-        public T TestGeneric3(T value)
-        {
-            return default(T);
-        }
-
-        [ThreadSafe]
-        public void TestGeneric2<T2>(T value, T2 value2)
-        {
-        }
-    }
-
     public class PatternModel
     {
         static Random rand = new Random();
