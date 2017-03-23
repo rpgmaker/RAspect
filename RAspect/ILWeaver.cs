@@ -814,7 +814,8 @@ namespace RAspect
         /// <param name="parameters">Parameters</param>
         private static void InvokeCopyMethod(Mono.Cecil.Cil.ILProcessor il, Mono.Cecil.Cil.VariableDefinition local, Mono.Cecil.MethodReference clonedMethod, bool isStatic, int parameterOffset, List<Mono.Cecil.ParameterDefinition> parameters)
         {
-            var isCall = isStatic || clonedMethod.DeclaringType.IsValueType;
+            var declaringType = clonedMethod.DeclaringType;
+            var isCall = isStatic || declaringType.IsValueType;
             if (!isStatic)
             {
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg_0);
@@ -825,14 +826,13 @@ namespace RAspect
                 il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg, i + parameterOffset);
             }
 
-            if (clonedMethod.GenericParameters.Any() || clonedMethod.ContainsGenericParameter)
+            if (declaringType.HasGenericParameters || clonedMethod.HasGenericParameters)
             {
                 var genericParameters = clonedMethod.GenericParameters;
-                var methodDeclaringType = clonedMethod.DeclaringType;
-
-                if (methodDeclaringType.GenericParameters.Any())
+                
+                if (declaringType.HasGenericParameters)
                 {
-                    var genericType = methodDeclaringType.MakeGenericInstanceType(methodDeclaringType.GenericParameters.ToArray());
+                    var genericType = declaringType.MakeGenericInstanceType(declaringType.GenericParameters.ToArray());
                     var hasThis = clonedMethod.HasThis;
                     var convention = clonedMethod.CallingConvention;
                     clonedMethod = new Mono.Cecil.MethodReference(clonedMethod.Name, clonedMethod.ReturnType, genericType);
