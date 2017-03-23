@@ -63,27 +63,27 @@
       <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Rocks.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RAspect">
+    <Reference Include="RAspect, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RAspect.Aspects">
+    <Reference Include="RAspect.Aspects, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Aspects.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RAspect.Contracts">
+    <Reference Include="RAspect.Contracts, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Contracts.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RAspect.Patterns">
+    <Reference Include="RAspect.Patterns, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Patterns.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RAspect.Patterns.Logging.Log4Net">
+    <Reference Include="RAspect.Patterns.Logging.Log4Net, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Patterns.Logging.Log4Net.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RAspect.Patterns.Logging.NLog">
+    <Reference Include="RAspect.Patterns.Logging.NLog, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RAspect.1.0.0.0\lib\net452\RAspect.Patterns.Logging.NLog.dll</HintPath>
       <Private>True</Private>
     </Reference>

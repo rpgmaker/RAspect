@@ -1012,8 +1012,19 @@ namespace RAspect
             var asmAspects = asmAttrs;
 
             var typeAspects = GetValidAspects(classType, asmAspects);
-            
-            var fieldAspects = classType.GetFields(NonPublicBinding).Select(x => new { Field = x, Aspects = typeAspects.Where(a => IsValidAspectFor(x, a)) })
+
+            var fields = classType.GetFields(NonPublicBinding);
+
+            foreach(var field in fields)
+            {
+                //Allow override constructors
+                if((field.Attributes & Mono.Cecil.FieldAttributes.InitOnly) == Mono.Cecil.FieldAttributes.InitOnly)
+                {
+                    field.Attributes &= ~Mono.Cecil.FieldAttributes.InitOnly;
+                }
+            }
+
+            var fieldAspects = fields.Select(x => new { Field = x, Aspects = typeAspects.Where(a => IsValidAspectFor(x, a)) })
                 .Where(x => x.Aspects.Any())
                 .SelectMany(x => x.Field.GetCustomAttributes<AspectBase>().Where(y => !y.Exclude).Union(x.Aspects)).Distinct().ToList();
 
