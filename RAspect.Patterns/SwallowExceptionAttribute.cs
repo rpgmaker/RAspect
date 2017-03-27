@@ -12,7 +12,7 @@ namespace RAspect.Patterns
     /// Attribute when applied to method or properties, swallows thrown exception
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Assembly)]
-    public class SwallowExceptionAttribute : AspectBase
+    public sealed class SwallowExceptionAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SwallowExceptionAttribute"/> class.

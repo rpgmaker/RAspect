@@ -380,6 +380,17 @@ namespace RAspect
         {
             var key = provider.ToString();
 
+            var paramDef = provider as ParameterDefinition;
+            var param = provider as ParameterReference;
+            
+            if(paramDef != null)
+            {
+                key = string.Concat(paramDef.Method.ToString(), paramDef.Name, paramDef.Index.ToString());
+            }else if(param != null)
+            {
+                key = string.Concat(param.Resolve().Method.ToString(), param.Name, param.Index.ToString());
+            }
+            
             return customAttributes.GetOrAdd(key, _ =>
             {
                 return GetCustomAttributesFor(provider, cType);

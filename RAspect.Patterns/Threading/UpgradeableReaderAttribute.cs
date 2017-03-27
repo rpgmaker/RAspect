@@ -12,7 +12,7 @@ namespace RAspect.Patterns.Threading
     /// Attribute will require both read and exclusive write (No other threads can write) when applied to method or properties
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Assembly)]
-    public class UpgradeableReaderAttribute : ReaderWriterBase
+    public sealed class UpgradeableReaderAttribute : ReaderWriterBase
     {
         /// <summary>
         /// Enter UpgradeableReadLock Method

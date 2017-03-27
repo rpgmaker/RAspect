@@ -97,8 +97,9 @@ namespace RAspect.Tests.Patterns
         }
 
         [ThreadUnSafe]
-        public void AllowsOnlyOneThread(ManualResetEvent reset)
+        public void AllowsOnlyOneThread(ManualResetEvent reset, ManualResetEvent reset2)
         {
+            reset2.Set();
             reset.WaitOne();
         }
 

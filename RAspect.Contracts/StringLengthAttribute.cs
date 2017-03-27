@@ -22,6 +22,10 @@ namespace RAspect.Contracts
         /// </summary>
         internal int MinLength;
 
+        public StringLengthAttribute() : this(int.MaxValue)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="StringLengthAttribute"/> class.
         /// </summary>
@@ -55,7 +59,7 @@ namespace RAspect.Contracts
             var str = value as string;
             var strLength = 0;
 
-            if(str == null || (strLength = str.Length) >=  strLengthAttr.MinLength && strLength <= strLengthAttr.MaxLength)
+            if(str == null || (strLength = str.Length) >= strLengthAttr.MinLength && strLength <= strLengthAttr.MaxLength)
             {
                 return null;
             }

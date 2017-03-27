@@ -106,21 +106,28 @@ namespace RAspect.Tests.Patterns
         {
             var obj = new PatternModel();
             var reset = new ManualResetEvent(false);
+            var reset2 = new ManualResetEvent(false);
 
             var exCount = 0;
 
-            Task.Run(() => {
-                obj.AllowsOnlyOneThread(reset);
+            var task = Task.Run(() => {
+                obj.AllowsOnlyOneThread(reset, reset2);
             });
+
+            reset2.WaitOne();
 
             try
             {
-                obj.AllowsOnlyOneThread(reset);
+                obj.AllowsOnlyOneThread(reset, reset2);
             }
             catch(Exception)
             {
                 exCount++;
+            }
+            finally
+            {
                 reset.Set();
+                reset2.Set();
             }
             
             Assert.True(exCount > 0);

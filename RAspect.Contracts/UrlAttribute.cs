@@ -22,7 +22,7 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            if(value == null || Uri.IsWellFormedUriString(value as string, UriKind.RelativeOrAbsolute))
+            if(value == null || Uri.IsWellFormedUriString(value as string, UriKind.Absolute))
             {
                 return null;
             }

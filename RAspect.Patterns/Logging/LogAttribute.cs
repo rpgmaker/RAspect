@@ -10,7 +10,7 @@ namespace RAspect.Patterns.Logging
     /// <summary>
     /// Attribute when applied on method cause tracing before and after execution of this method
     /// </summary>
-    public class LogAttribute : AspectBase
+    public sealed class LogAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LogAttribute"/> class.

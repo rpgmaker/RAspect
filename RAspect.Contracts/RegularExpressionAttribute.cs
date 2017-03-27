@@ -21,6 +21,13 @@ namespace RAspect.Contracts
         /// <summary>
         /// Initializes a new instance of the <see cref="RegularExpressionAttribute"/> class.
         /// </summary>
+        public RegularExpressionAttribute() : this("(.*)")
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RegularExpressionAttribute"/> class.
+        /// </summary>
         /// <param name="pattern">Pattern</param>
         public RegularExpressionAttribute(string pattern) : this(pattern, RegexOptions.None)
         {

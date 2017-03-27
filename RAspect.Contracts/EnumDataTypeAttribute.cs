@@ -20,6 +20,13 @@ namespace RAspect.Contracts
         /// <summary>
         /// Initializes a new instance of the <see cref="EnumDataTypeAttribute"/> class.
         /// </summary>
+        public EnumDataTypeAttribute()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EnumDataTypeAttribute"/> class.
+        /// </summary>
         /// <param name="enumType">Enum Type</param>
         public EnumDataTypeAttribute(Type enumType)
         {

@@ -16,11 +16,6 @@ namespace RAspect.Contracts
     public sealed class CreditCardAttribute : ContractAspect
     {
         /// <summary>
-        /// Regex pattern credit card
-        /// </summary>
-        private static Regex CreditCardRegex = new Regex(@"", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase); 
-        
-        /// <summary>
         /// Validate value against contract implementation
         /// </summary>
         /// <param name="value">Value</param>

@@ -13,7 +13,7 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied to type, ensure access to the methods and properties is synchronized 
     /// </summary>
-    public class ThreadSafeAttribute : AspectBase
+    public sealed class ThreadSafeAttribute : AspectBase
     {
         /// <summary>
         /// Monitor Enter Method

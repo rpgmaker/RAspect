@@ -11,7 +11,7 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied on a method specified that method requires read access to the object
     /// </summary>
-    public class ReaderAttribute : ReaderWriterBase
+    public sealed class ReaderAttribute : ReaderWriterBase
     {
         /// <summary>
         /// Enter ReadLock Method

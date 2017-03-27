@@ -12,7 +12,7 @@ namespace RAspect.Patterns
     /// Attribute when applied on type/methods will include Tail call instruction for recursive functions
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly, Inherited = true)]
-    public class TailAttribute : AspectBase
+    public sealed class TailAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TailAttribute"/> class.

@@ -15,6 +15,13 @@ namespace RAspect.Contracts
         /// <summary>
         /// Initializes a new instance of the <see cref="GreaterThanAttribute"/> class.
         /// </summary>
+        public GreaterThanAttribute() : this(0)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GreaterThanAttribute"/> class.
+        /// </summary>
         /// <param name="value">Value</param>
         public GreaterThanAttribute(double value) : base(value, double.MaxValue)
         {

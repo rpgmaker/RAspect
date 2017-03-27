@@ -12,7 +12,7 @@ namespace RAspect.Patterns.Threading
     /// Attribute when applied to a class will require at ReaderAttribute and WriterAttribute to be applied to method or properties otherwise it will throw exception
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly)]
-    public class ReaderWriterSynchronizedAttribute : AspectBase
+    public sealed class ReaderWriterSynchronizedAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ReaderWriterSynchronizedAttribute"/> class.

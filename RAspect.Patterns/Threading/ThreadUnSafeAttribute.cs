@@ -12,7 +12,7 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied to a type, ensures that only one thread executes in methods of this type. When more than one thread accesses methods of this type, a <see cref="ConcurrentAccessException"/> exception is thrown
     /// </summary>
-    public class ThreadUnSafeAttribute : AspectBase
+    public sealed class ThreadUnSafeAttribute : AspectBase
     {
         /// <summary>
         /// Field thread safe counter

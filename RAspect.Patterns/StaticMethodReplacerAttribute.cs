@@ -12,7 +12,7 @@ namespace RAspect.Patterns
     /// Attribute when applied on type, allows static method of type to be substitued with other method
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly, AllowMultiple = true, Inherited = true)]
-    public class StaticMethodReplacerAttribute : AspectBase
+    public sealed class StaticMethodReplacerAttribute : AspectBase
     {
         private Type staticMethodType;
 

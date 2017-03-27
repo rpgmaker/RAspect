@@ -11,7 +11,7 @@ namespace RAspect.Patterns
     /// <summary>
     /// Attribute when applied to method, allowed result of method to be cached
     /// </summary>
-    public class CachebleAttribute : AspectBase
+    public sealed class CachebleAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CachebleAttribute"/> class.

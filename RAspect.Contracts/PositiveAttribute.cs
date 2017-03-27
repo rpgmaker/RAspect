@@ -17,7 +17,6 @@ namespace RAspect.Contracts
         /// </summary>
         public PositiveAttribute() : base(0)
         {
-
         }
     }
 }

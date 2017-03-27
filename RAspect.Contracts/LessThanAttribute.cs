@@ -15,6 +15,13 @@ namespace RAspect.Contracts
         /// <summary>
         /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
         /// </summary>
+        public LessThanAttribute() : this(0)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
+        /// </summary>
         /// <param name="value">Value</param>
         public LessThanAttribute(double value) : base(value < 0 ? double.MinValue : 0, value)
         {

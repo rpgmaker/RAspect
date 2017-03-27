@@ -11,7 +11,7 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied to a class implements the freezeable threading model. The aspect introduces functionality that allows using provided freeze method on class. After the Freeze() method has been invoked, the object can no longer be modified, can therefore be safely shared between several threads
     /// </summary>
-    public class FreezeableAttribute : AspectBase
+    public sealed class FreezeableAttribute : AspectBase
     {
         /// <summary>
         /// Validate Contract Method

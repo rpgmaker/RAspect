@@ -14,7 +14,7 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied on a type, ensure that the instance of this can only be accessed by the thread that created the instance. When a different thread accesses instance of this type, a <see cref="ThreadMismatchException" /> exception is thrown.
     /// </summary>
-    public class ThreadAffinityAttribute : AspectBase
+    public sealed class ThreadAffinityAttribute : AspectBase
     {
         /// <summary>
         /// Instances thread tracker

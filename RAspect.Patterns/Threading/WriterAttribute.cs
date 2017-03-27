@@ -11,7 +11,7 @@ namespace RAspect.Patterns.Threading
     /// <summary>
     /// Attribute when applied on a method, specified that the method requires write access to the object
     /// </summary>
-    public class WriterAttribute : ReaderWriterBase
+    public sealed class WriterAttribute : ReaderWriterBase
     {
         /// <summary>
         /// Enter WriteLock Method

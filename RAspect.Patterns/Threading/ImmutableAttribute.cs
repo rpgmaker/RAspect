@@ -13,7 +13,7 @@ namespace RAspect.Patterns.Threading
     /// Attribute when applied to a class, it implements the immutable threading model. Immutable objects cannot be modified after the constructor exits
     /// </summary>
 
-    public class ImmutableAttribute : AspectBase
+    public sealed class ImmutableAttribute : AspectBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImmutableAttribute"/> class.

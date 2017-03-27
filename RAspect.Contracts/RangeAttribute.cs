@@ -25,6 +25,13 @@ namespace RAspect.Contracts
         /// <summary>
         /// Initializes a new instance of the <see cref="RangeAttribute"/> class.
         /// </summary>
+        public RangeAttribute() : this(0, double.MaxValue)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RangeAttribute"/> class.
+        /// </summary>
         /// <param name="min">Min</param>
         /// <param name="max">Max</param>
         public RangeAttribute(double min, double max)
@@ -65,7 +72,7 @@ namespace RAspect.Contracts
         /// <returns>Exception</returns>
         protected override Exception ValidateContract(object value, string name, bool isParameter, ContractAspect attr)
         {
-            if(value == null)
+            if (value == null)
             {
                 return null;
             }
