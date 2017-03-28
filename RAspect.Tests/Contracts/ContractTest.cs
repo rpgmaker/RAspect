@@ -83,7 +83,7 @@ namespace RAspect.Tests.Contracts
         public void WillThrowForGreaterThan10()
         {
             Assert.ThrowsAny<Exception>(() =>
-                model.ValidateGreaterThan10(11));
+                model.ValidateGreaterThan10(9));
         }
 
         [Fact]
@@ -92,7 +92,7 @@ namespace RAspect.Tests.Contracts
             Exception ex = null;
             try
             {
-                model.ValidateGreaterThan10(9);
+                model.ValidateGreaterThan10(11);
             }
             catch { }
 
@@ -100,10 +100,10 @@ namespace RAspect.Tests.Contracts
         }
 
         [Fact]
-        public void WillThrowForLessThan10()
+        public void WillThrowForValueGreaterThanLesser10()
         {
             Assert.ThrowsAny<Exception>(() =>
-                model.ValidateLessThan10(9));
+                model.ValidateLessThan10(10));
         }
 
         [Fact]
@@ -112,7 +112,7 @@ namespace RAspect.Tests.Contracts
             Exception ex = null;
             try
             {
-                model.ValidateLessThan10(11);
+                model.ValidateLessThan10(9);
             }
             catch { }
 
@@ -122,8 +122,8 @@ namespace RAspect.Tests.Contracts
         [Fact]
         public void WillThrowForNegative()
         {
-            //Assert.ThrowsAny<Exception>(() =>
-            //    model.ValidateNegative(-2));
+            Assert.ThrowsAny<Exception>(() =>
+                model.ValidateNegative(1));
         }
 
         [Fact]
@@ -132,7 +132,7 @@ namespace RAspect.Tests.Contracts
             Exception ex = null;
             try
             {
-                model.ValidateNegative(0);
+                model.ValidateNegative(-1);
             }
             catch { }
 
@@ -200,23 +200,23 @@ namespace RAspect.Tests.Contracts
         }
 
         [Fact]
-        public void WillThrowForPositiveNumber()
+        public void WillThrowForNonPositiveNumber()
         {
             Assert.ThrowsAny<Exception>(() =>
-                model.ValidatePositive(1));
+                model.ValidatePositive(-1));
         }
 
         [Fact]
         public void PositiveShouldBeValid()
         {
-            //Exception ex = null;
-            //try
-            //{
-            //    model.ValidatePositive(-1);
-            //}
-            //catch { }
+            Exception ex = null;
+            try
+            {
+                model.ValidatePositive(1);
+            }
+            catch { }
 
-            //Assert.Null(ex);
+            Assert.Null(ex);
         }
 
         [Fact]

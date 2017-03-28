@@ -119,6 +119,7 @@ namespace RAspect.Aspects
             var offset = method.IsStatic ? 0 : 1;
 
             var paraMethod = method;
+            var parameterType = parameter.ParameterType;
             var parameterDeclaringType = paraMethod.DeclaringType;
             var aspect = parameter.GetCustomAttribute(aspectType);
 
@@ -129,6 +130,11 @@ namespace RAspect.Aspects
 
             il.Emit(Mono.Cecil.Cil.OpCodes.Ldsfld, aspectField);
             il.Emit(Mono.Cecil.Cil.OpCodes.Ldarg, parameter.Index + offset);
+            if (parameterType.IsValueType)
+            {
+                il.Emit(Mono.Cecil.Cil.OpCodes.Box, parameterType);
+            }
+
             il.Emit(Mono.Cecil.Cil.OpCodes.Ldstr, parameter.Name);
             il.Emit(Mono.Cecil.Cil.OpCodes.Ldc_I4_1);
 

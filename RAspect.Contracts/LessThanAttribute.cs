@@ -23,7 +23,7 @@ namespace RAspect.Contracts
         /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
         /// </summary>
         /// <param name="value">Value</param>
-        public LessThanAttribute(double value) : base(value < 0 ? double.MinValue : 0, value)
+        public LessThanAttribute(double value) : base(double.MinValue, value)
         {
         }
 
@@ -31,7 +31,7 @@ namespace RAspect.Contracts
         /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
         /// </summary>
         /// <param name="value">Value</param>
-        public LessThanAttribute(long value) : base(value < 0 ? long.MinValue : 0, value)
+        public LessThanAttribute(long value) : base(long.MinValue, value)
         {
         }
 
@@ -39,7 +39,7 @@ namespace RAspect.Contracts
         /// Initializes a new instance of the <see cref="LessThanAttribute"/> class.
         /// </summary>
         /// <param name="value">Value</param>
-        public LessThanAttribute(ulong value) : base(value < 0 ? ulong.MinValue : 0, value)
+        public LessThanAttribute(ulong value) : base(ulong.MinValue, value)
         {
         }
     }

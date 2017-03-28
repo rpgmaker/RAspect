@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace RAspect.Contracts
 {
     /// <summary>
-    /// Attribute that throws <see cref="ArgumentOutOfRangeException"/> for target it is applied to when value is greater than zero
+    /// Attribute that throws <see cref="ArgumentOutOfRangeException"/> for target it is applied to when value is greater than or equal zero
     /// </summary>
     public sealed class NegativeAttribute : LessThanAttribute
     {
