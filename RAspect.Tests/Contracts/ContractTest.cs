@@ -43,7 +43,7 @@ namespace RAspect.Tests.Contracts
         public void WillThrowForInvalidEmail()
         {
             Assert.ThrowsAny<Exception>(() =>
-                model.ValidEmailAddress("test@test"));
+                model.ValidEmailAddress("test@tester"));
         }
 
         [Fact]
