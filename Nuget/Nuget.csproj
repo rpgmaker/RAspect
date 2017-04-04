@@ -34,7 +34,7 @@
   </Target>
   <Target Name="Build" DependsOnTargets="NuGetBuild" />
   <Target Name="ReBuild" DependsOnTargets="NuGetBuild" />
-  <Target Name="NuGetBuild">
+  <Target Name="NuGetBuild" DependsOnTargets="Clean">
     <MakeDir Directories="$(SolutionDir)NuGetBuild" />
     <Copy SourceFiles="$(SolutionDir)NuGet\RAspect.nuspec" DestinationFolder="$(SolutionDir)NuGetBuild" />
     <Copy SourceFiles="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" DestinationFolder="$(SolutionDir)NuGetBuild\lib\net452" />
@@ -51,8 +51,8 @@
     <Copy SourceFiles="$(ProjectDir)Tools\NuGetPowerTools.psd1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
     <Copy SourceFiles="$(ProjectDir)Tools\NuGetPowerTools.psm1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
     <Copy SourceFiles="$(ProjectDir)Tools\VS.psm1" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
-	<Copy SourceFiles="$(SolutionDir)RAspect.Compiler\bin\$(ConfigurationName)\RAspect.Compiler.exe" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
-	<Copy SourceFiles="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" />
+	<Copy SourceFiles="$(SolutionDir)RAspect.Compiler\bin\$(ConfigurationName)\RAspect.Compiler.exe" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" Condition="Exists('$(SolutionDir)RAspect.Compiler\bin\$(ConfigurationName)\RAspect.Compiler.exe')" />
+	<Copy SourceFiles="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" DestinationFolder="$(SolutionDir)NuGetBuild\Tools" Condition="Exists('$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll')" />
     <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect\bin\$(ConfigurationName)\RAspect.dll" />
     <!--<PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Aspects\bin\$(ConfigurationName)\RAspect.Aspects.dll" />
     <PepitaPackage.CreatePackageTask NuGetBuildDirectory="$(SolutionDir)NuGetBuild" MetadataAssembly="$(SolutionDir)RAspect.Contracts\bin\$(ConfigurationName)\RAspect.Contracts.dll" />
