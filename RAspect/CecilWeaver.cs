@@ -85,13 +85,13 @@ namespace RAspect
                 if (assembly.Exists)
                 {
                     LogMessage("Backing up {0}", assembly.FullName);
-                    assembly.CopyTo(Path.Combine(backupPath, assembly.Name + ".bak"), true);
+                    assembly.CopyTo(Path.Combine(backupPath, assembly.Name.Replace(".dll", ".bak")), true);
                 }
 
                 if (pdb.Exists)
                 {
                     LogMessage("Backing up {0}", pdb.FullName);
-                    pdb.CopyTo(Path.Combine(backupPath, pdb.Name + ".bak"), true);
+                    pdb.CopyTo(Path.Combine(backupPath, pdb.Name), true);
                 }
             }
             catch(Exception ex)
