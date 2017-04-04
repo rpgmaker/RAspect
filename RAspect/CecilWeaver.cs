@@ -86,8 +86,6 @@ namespace RAspect
                 {
                     LogMessage("Backing up {0}", assembly.FullName);
                     assembly.CopyTo(Path.Combine(backupPath, assembly.Name), true);
-                    assembly.Directory.GetFiles().Where(x => x.Extension.IndexOf("dll", StringComparison.OrdinalIgnoreCase) >= 0) 
-                        .ToList().ForEach(f => f.CopyTo(Path.Combine(backupPath, f.Name), true));
                 }
 
                 if (pdb.Exists)
